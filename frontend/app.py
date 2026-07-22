@@ -1,16 +1,18 @@
 """
 OmniBrain - AI Research Assistant
-----------------------------------
-Ek Streamlit-based frontend jisme:
- - Left sidebar: file upload + uploaded files list + settings
- - Main area: welcome screen -> chat interface
- - Quick action buttons (Summarize, Translate, Notes, Key Points)
- - Right panel: document info
- - Footer
 
-NOTE: Ye abhi sirf FRONTEND + DUMMY AI hai.
-Real AI jawaab ke liye "get_ai_response()" function ko
-apne LangChain / OpenAI / Anthropic API call se replace karo.
+Streamlit frontend for the OmniBrain application.
+
+Features:
+- Document upload
+- Chat interface
+- Quick actions
+- Document information panel
+- Application settings
+
+Note:
+This is currently a frontend prototype.
+The AI response function will be replaced with the actual FastAPI + LangChain backend.
 """
 
 import os
@@ -29,7 +31,7 @@ except ImportError:
 
 
 # ----------------------------------------------------------------------
-# 1. PAGE CONFIG  --  ye sabse pehle call hona chahiye
+# 1. PAGE CONFIG  
 # ----------------------------------------------------------------------
 st.set_page_config(
     page_title="OmniBrain",
@@ -40,7 +42,7 @@ st.set_page_config(
 
 
 # ----------------------------------------------------------------------
-# 2. CUSTOM CSS (dark navy + blue theme jaisa tumne bataya)
+# 2. CUSTOM CSS 
 # ----------------------------------------------------------------------
 st.markdown(
     """
@@ -107,8 +109,7 @@ st.markdown(
 
 
 # ----------------------------------------------------------------------
-# 3. SESSION STATE  --  Streamlit har baar rerun hota hai, isliye
-#    "memory" (files, chat history) ko session_state me store karte hain.
+# 3. SESSION STATE  --  # Store uploaded files and chat history across reruns.
 # ----------------------------------------------------------------------
 if "uploaded_files_info" not in st.session_state:
     st.session_state.uploaded_files_info = []   # list of dicts: name, pages, chunks
@@ -168,7 +169,7 @@ def get_ai_response(user_query: str) -> str:
 
 
 def process_uploaded_file(file):
-    """File ko 'index' karta hai — abhi dummy hai, sirf page count nikalta hai agar PDF ho."""
+    """Extract basic metadata from uploaded documents."""
     pages = None
     if file.name.lower().endswith(".pdf") and PdfReader is not None:
         try:
@@ -246,7 +247,7 @@ with st.sidebar:
         for f in st.session_state.uploaded_files_info:
             st.markdown(f"• {f['name']}")
     else:
-        st.caption("Koi file upload nahi hui abhi.")
+        st.caption("No documents uploaded yet.")
 
     st.markdown("---")
     st.markdown("### Settings")
@@ -268,7 +269,7 @@ with main_col:
             <div class="ob-card" style="text-align:center; padding:3rem;">
                 <h1> OmniBrain</h1>
                 <p style="color:#94A3B8;">AI-powered Research Workspace</p>
-                <p>Upload documents and ask questions.</p>
+                <p>Upload research documents and interact with them using AI.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -340,7 +341,7 @@ with right_col:
             unsafe_allow_html=True,
         )
     else:
-        st.caption("Document upload karne ke baad yahan info dikhegi.")
+        st.caption("Upload a document to view its metadata.")
 
 
 # ----------------------------------------------------------------------
