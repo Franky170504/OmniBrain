@@ -219,3 +219,4 @@ __marimo__/
 
 input/
 .vscode/
+qdrant_storage/
