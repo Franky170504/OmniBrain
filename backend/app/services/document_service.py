@@ -1,82 +1,122 @@
 import uuid
 from pathlib import Path
-import aiofiles
+from typing import Any
 from fastapi import UploadFile, HTTPException, status
-from app.core.config import settings
-
+from backend.app.core.app_config import settings
+from backend.app.pipeline.parsing_pipeline import parse_pdf
+from backend.app.services.qdrant_service import QdrantService
 
 class DocumentService:
-    """Service handling document validation, storage, and retrieval."""
+    def __init__(
+        self,
+        qdrant_service: QdrantService,
+    ) -> None:
+        self.qdrant_service = qdrant_service
 
-    def __init__(self, upload_dir: Path = settings.UPLOAD_DIR):
-        self.upload_dir = upload_dir
-        # Ensure uploads directory exists
-        self.upload_dir.mkdir(parents=True, exist_ok=True)
+        settings.INPUT_DIR.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
-    async def save_pdf(self, file: UploadFile) -> dict:
-        """
-        Asynchronously validates and saves an uploaded PDF document.
-        Stores the PDF in backend/uploads/ using document_id as filename.
-        """
-        filename = file.filename or "document.pdf"
-        
-        # 1. Extension validation
-        if not filename.lower().endswith(".pdf"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid file extension. Only PDF files (.pdf) are allowed."
+        settings.OUTPUT_DIR.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+    @staticmethod
+    def validate_filename(filename: str | None) -> str:
+        clean_name = Path(filename or "").name
+
+        if not clean_name:
+            raise ValueError(
+                "The uploaded file has no filename."
             )
 
-        # 2. Content-type validation
-        if file.content_type and "pdf" not in file.content_type.lower():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid content-type '{file.content_type}'. Expected PDF file."
+        if Path(clean_name).suffix.lower() != ".pdf":
+            raise ValueError(
+                "Only PDF files are supported."
             )
 
-        # 3. Read content asynchronously
+        return clean_name
+
+    async def save_upload(
+        self,
+        file: UploadFile,
+    ) -> tuple[Path, str]:
+        original_filename = self.validate_filename(
+            file.filename
+        )
+
+        stored_filename = (
+            f"{uuid.uuid4().hex}-{original_filename}"
+        )
+
+        saved_path = (
+            settings.OUTPUT_DIR
+            / stored_filename
+        )
+
+        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        bytes_written = 0
+
         try:
-            content = await file.read()
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to read uploaded file stream: {str(e)}"
-            )
+            with saved_path.open("wb") as output_file:
+                while chunk := await file.read(1024 * 1024):
+                    bytes_written += len(chunk)
 
-        # 4. File size check
-        max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
-        if len(content) > max_bytes:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File size exceeds maximum allowed limit of {settings.MAX_FILE_SIZE_MB}MB."
-            )
+                    if bytes_written > max_bytes:
+                        raise ValueError(
+                            "Uploaded file exceeds the maximum "
+                            f"size of {settings.MAX_UPLOAD_SIZE_MB} MB."
+                        )
 
-        # 5. Generate unique document ID and save
-        document_id = str(uuid.uuid4())
-        destination_path = self.upload_dir / f"{document_id}.pdf"
+                    output_file.write(chunk)
 
-        try:
-            async with aiofiles.open(destination_path, "wb") as out_file:
-                await out_file.write(content)
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to save document to storage: {str(e)}"
-            )
+        except Exception:
+            saved_path.unlink(missing_ok=True)
+            raise
+
         finally:
             await file.close()
 
-        return {
-            "document_id": document_id,
-            "filename": filename,
-            "file_size": len(content),
-            "message": "Document uploaded and stored successfully."
-        }
+        return saved_path, original_filename
 
-    def document_exists(self, document_id: str) -> bool:
-        """Checks if a document with the specified ID exists in storage."""
-        path = self.upload_dir / f"{document_id}.pdf"
-        return path.is_file()
+    async def process_upload(
+        self,
+        *,
+        file: UploadFile,
+        user_id: str,
+    ) -> dict[str, Any]:
+        saved_path, original_filename = (
+            await self.save_upload(file)
+        )
 
+        try:
+            document, chunks, images = parse_pdf(
+                pdf_path=saved_path,
+                output_path=settings.OUTPUT_DIR,
+                chunk_size=2_000,
+                overlap=250,
+            )
 
-document_service = DocumentService()
+            indexed_points = (
+                self.qdrant_service.ingest_chunks(
+                    chunks,
+                    user_id=user_id,
+                    original_filename=original_filename,
+                )
+            )
+
+            return {
+                "message": "Document uploaded and indexed.",
+                "document_id": document["document_id"],
+                "filename": original_filename,
+                "page_count": document["page_count"],
+                "chunk_count": len(chunks),
+                "image_count": len(images),
+                "indexed_points": indexed_points,
+            }
+
+        except Exception:
+            saved_path.unlink(missing_ok=True)
+            raise

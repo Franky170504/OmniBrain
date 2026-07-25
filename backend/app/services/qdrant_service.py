@@ -1,136 +1,300 @@
 from __future__ import annotations
 
-import os
+import logging
 import uuid
-from typing import Any
+from dataclasses import asdict, is_dataclass
 
+from typing import Any,Iterable
+from pathlib import Path
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient, models
+from config.settings import settings
+from config.path_config import *
 
-load_dotenv()
-
+load_dotenv(Path(".env"))
+LOGGER = logging.getLogger("omnibrain.qdrant")
 
 class QdrantService:
     def __init__(self) -> None:
-        self.url = os.getenv("QDRANT_URL", "http://localhost:6333")
-        self.api_key = os.getenv("QDRANT_API_KEY") or None
-        self.collection_name = os.getenv(
-            "QDRANT_COLLECTION",
-            "pdf_chunks",
-        )
-        self.embedding_model = os.getenv(
-            "EMBEDDING_MODEL",
-            "BAAI/bge-small-en-v1.5",
-        )
+        self.qdrant_url = settings.qdrant_url
+        self.qdrant_api_key = settings.qdrant_api_key or None
+        self.collection_name = settings.collection_name
+        self.embedding_model = settings.embedding_model
+        self.embedding_batch_size = settings.embedding_batch_size
+        self.client : QdrantClient | None = None
+        self.ensure_collection()
+
+    def connect(self) -> QdrantClient:
+        """Connect to Qdrant and fail early if unavailable."""
+
+        if self.client is not None:
+            return self.client
+
+        LOGGER.info("Connecting to Qdrant at %s", self.qdrant_url)
 
         self.client = QdrantClient(
-            url=self.url,
-            api_key=self.api_key,
+            url=self.qdrant_url,
+            api_key=self.qdrant_api_key,
             timeout=120,
         )
 
-        self.ensure_collection()
+        self.client.get_collections()
+
+        LOGGER.info("Connected to Qdrant")
+        return self.client
+
+    def close(self) -> None:
+        if self.client is not None:
+            self.client.close()
+            self.client = None
+
+    def get_client(self) -> QdrantClient:
+        return self.connect()
 
     def ensure_collection(self) -> None:
-        if self.client.collection_exists(self.collection_name):
+        client = self.get_client()
+        if client.collection_exists(self.collection_name):
+            LOGGER.info(
+                "Using existing Qdrant collection: %s",
+                self.collection_name,
+            )
             return
 
         vector_size = self.client.get_embedding_size(
             self.embedding_model
         )
 
-        self.client.create_collection(
+        client.create_collection(
             collection_name=self.collection_name,
             vectors_config=models.VectorParams(
                 size=vector_size,
                 distance=models.Distance.COSINE,
             ),
+            on_disk_payload=True
         )
 
-        self.client.create_payload_index(
-            collection_name=self.collection_name,
-            field_name="document_id",
-            field_schema=models.PayloadSchemaType.KEYWORD,
+        self._create_payload_indexes()
+
+        LOGGER.info(
+            "Created collection %s with vector size %s",
+            self.collection_name,
+            vector_size,
         )
 
-        self.client.create_payload_index(
-            collection_name=self.collection_name,
-            field_name="user_id",
-            field_schema=models.PayloadSchemaType.KEYWORD,
+    def _create_payload_indexes(self) -> None:
+        client = self.get_client()
+
+        indexes = (
+            ("chunk_id", models.PayloadSchemaType.KEYWORD),
+            ("document_id", models.PayloadSchemaType.KEYWORD),
+            ("user_id", models.PayloadSchemaType.KEYWORD),
+            ("filename", models.PayloadSchemaType.KEYWORD),
+            ("file_sha256", models.PayloadSchemaType.KEYWORD),
+            ("page_start", models.PayloadSchemaType.INTEGER),
+            ("page_end", models.PayloadSchemaType.INTEGER),
+            ("chunk_index", models.PayloadSchemaType.INTEGER),
         )
+
+        for field_name, schema in indexes:
+            try:
+                client.create_payload_index(
+                    collection_name=self.collection_name,
+                    field_name=field_name,
+                    field_schema=schema,
+                    wait=True,
+                )
+            except Exception as exc:
+                LOGGER.debug(
+                    "Payload index %s was not created: %s",
+                    field_name,
+                    exc,
+                )
 
     @staticmethod
-    def make_point_id(chunk_id: str) -> str:
+    def make_point_id(
+        *,
+        user_id: str,
+        document_id: str,
+        chunk_id: str,
+    ) -> str:
+        """
+        Include user and document IDs to avoid collisions between tenants.
+        """
+
+        source = (
+            f"omnibrain:{user_id}:{document_id}:{chunk_id}"
+        )
+
         return str(
             uuid.uuid5(
                 uuid.NAMESPACE_URL,
-                f"omnibrain:{chunk_id}",
+                source,
             )
         )
+
+    @staticmethod
+    def _record_to_dict(chunk: Any) -> dict[str, Any]:
+        if isinstance(chunk, dict):
+            return chunk
+
+        if is_dataclass(chunk):
+            return asdict(chunk)
+
+        if hasattr(chunk, "__dict__"):
+            return vars(chunk)
+
+        raise TypeError(
+            f"Unsupported chunk type: {type(chunk).__name__}"
+        )
+
+    @staticmethod
+    def _json_value(value: Any) -> Any:
+        if value is None:
+            return None
+
+        if isinstance(value, Path):
+            return str(value)
+
+        if isinstance(value, dict):
+            return {
+                str(key): QdrantService._json_value(item)
+                for key, item in value.items()
+                if item is not None
+            }
+
+        if isinstance(value, (list, tuple, set)):
+            return [
+                QdrantService._json_value(item)
+                for item in value
+                if item is not None
+            ]
+
+        if isinstance(value, (str, int, float, bool)):
+            return value
+
+        return str(value)
+
+    def build_payload(
+        self,
+        record: dict[str, Any],
+        *,
+        user_id: str,
+        original_filename: str | None = None,
+    ) -> dict[str, Any]:
+        metadata = record.get("metadata")
+
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        filename = (
+            original_filename
+            or metadata.get("filename")
+            or Path(str(record.get("source_file", ""))).name
+            or None
+        )
+
+        payload = {
+            "chunk_id": str(record["chunk_id"]),
+            "document_id": str(record["document_id"]),
+            "user_id": user_id,
+            "source_file": record.get("source_file"),
+            "filename": filename,
+            "chunk_index": int(record["chunk_index"]),
+            "page_start": int(record["page_start"]),
+            "page_end": int(record["page_end"]),
+            "text": str(record["text"]).strip(),
+            "character_count": record.get("character_count"),
+            "title": metadata.get("title"),
+            "author": metadata.get("author"),
+            "subject": metadata.get("subject"),
+            "keywords": metadata.get("keywords"),
+            "file_sha256": metadata.get("file_sha256"),
+            "metadata": metadata,
+        }
+
+        return {
+            key: self._json_value(value)
+            for key, value in payload.items()
+            if value is not None
+        }
 
     def ingest_chunks(
         self,
-        chunks: list[Any],
+        chunks: Iterable[Any],
         *,
         user_id: str,
+        original_filename: str | None = None,
     ) -> int:
-        if not chunks:
+        """Embed and upload chunks produced by your parser."""
+
+        self.ensure_collection()
+
+        records = [
+            self._record_to_dict(chunk)
+            for chunk in chunks
+        ]
+
+        if not records:
             return 0
 
-        ids: list[str] = []
-        documents: list[models.Document] = []
-        payloads: list[dict[str, Any]] = []
+        uploaded = 0
 
-        for chunk in chunks:
-            # Supports either dataclass objects or dictionaries.
-            if isinstance(chunk, dict):
-                record = chunk
-            else:
-                record = vars(chunk)
+        for start in range(0, len(records), self.embedding_batch_size):
+            batch = records[start : start + self.embedding_batch_size]
 
-            metadata = record.get("metadata") or {}
+            ids: list[str] = []
+            documents: list[models.Document] = []
+            payloads: list[dict[str, Any]] = []
 
-            chunk_id = str(record["chunk_id"])
-            text = str(record["text"]).strip()
+            for record in batch:
+                text = str(record.get("text", "")).strip()
 
-            ids.append(self.make_point_id(chunk_id))
+                if not text:
+                    continue
 
-            documents.append(
-                models.Document(
-                    text=text,
-                    model=self.embedding_model,
+                chunk_id = str(record["chunk_id"])
+                document_id = str(record["document_id"])
+
+                ids.append(
+                    self.make_point_id(
+                        user_id=user_id,
+                        document_id=document_id,
+                        chunk_id=chunk_id,
+                    )
                 )
+
+                documents.append(
+                    models.Document(
+                        text=text,
+                        model=self.embedding_model,
+                    )
+                )
+
+                payloads.append(
+                    self.build_payload(
+                        record,
+                        user_id=user_id,
+                        original_filename=original_filename,
+                    )
+                )
+
+            if not ids:
+                continue
+
+            self.get_client().upload_collection(
+                collection_name=self.collection_name,
+                ids=ids,
+                vectors=documents,
+                payload=payloads,
+                batch_size=self.embedding_batch_size,
+                parallel=1,
+                max_retries=3,
+                wait=True,
             )
 
-            payloads.append(
-                {
-                    "chunk_id": chunk_id,
-                    "document_id": str(record["document_id"]),
-                    "user_id": user_id,
-                    "source_file": str(
-                        record.get("source_file", "")
-                    ),
-                    "filename": metadata.get("filename"),
-                    "title": metadata.get("title"),
-                    "page_start": int(record["page_start"]),
-                    "page_end": int(record["page_end"]),
-                    "chunk_index": int(record["chunk_index"]),
-                    "text": text,
-                }
-            )
+            uploaded += len(ids)
 
-        self.client.upload_collection(
-            collection_name=self.collection_name,
-            ids=ids,
-            vectors=documents,
-            payload=payloads,
-            batch_size=64,
-            parallel=1,
-            max_retries=3,
-            wait=True,
-        )
-
-        return len(ids)
+        return uploaded
 
     def search(
         self,
@@ -138,9 +302,13 @@ class QdrantService:
         *,
         user_id: str,
         document_id: str | None = None,
-        limit: int = 5,
-        score_threshold: float | None = 0.35,
+        limit: int | None = None,
+        score_threshold: float | None = None,
     ) -> list[dict[str, Any]]:
+        """Search chunks belonging to the current user/document."""
+
+        self.ensure_collection()
+
         conditions: list[models.Condition] = [
             models.FieldCondition(
                 key="user_id",
@@ -158,15 +326,19 @@ class QdrantService:
                 )
             )
 
-        response = self.client.query_points(
+        response = self.get_client().query_points(
             collection_name=self.collection_name,
             query=models.Document(
                 text=question,
                 model=self.embedding_model,
             ),
             query_filter=models.Filter(must=conditions),
-            limit=limit,
-            score_threshold=score_threshold,
+            limit=limit or settings.qdrant_search_limit,
+            score_threshold=(
+                settings.qdrant_score_threshold
+                if score_threshold is None
+                else score_threshold
+            ),
             with_payload=True,
             with_vectors=False,
         )
@@ -178,6 +350,7 @@ class QdrantService:
 
             results.append(
                 {
+                    "point_id": str(point.id),
                     "score": float(point.score),
                     "chunk_id": payload.get("chunk_id"),
                     "document_id": payload.get("document_id"),
@@ -189,3 +362,71 @@ class QdrantService:
             )
 
         return results
+
+    def delete_document(
+        self,
+        *,
+        user_id: str,
+        document_id: str,
+    ) -> None:
+        self.get_client().delete(
+            collection_name=self.collection_name,
+            points_selector=models.FilterSelector(
+                filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="user_id",
+                            match=models.MatchValue(
+                                value=user_id
+                            ),
+                        ),
+                        models.FieldCondition(
+                            key="document_id",
+                            match=models.MatchValue(
+                                value=document_id
+                            ),
+                        ),
+                    ]
+                )
+            ),
+            wait=True,
+        )
+
+    def exact_point_count(self) -> int:
+        if not self.get_client().collection_exists(
+            self.collection_name
+        ):
+            return 0
+
+        return self.get_client().count(
+            collection_name=self.collection_name,
+            exact=True,
+        ).count
+
+    def health(self) -> dict[str, Any]:
+        client = self.get_client()
+        collections = client.get_collections()
+
+        exists = client.collection_exists(
+            self.collection_name
+        )
+
+        status_value: str | None = None
+
+        if exists:
+            info = client.get_collection(
+                self.collection_name
+            )
+            status_value = str(info.status)
+
+        return {
+            "connected": True,
+            "available_collections": [
+                item.name
+                for item in collections.collections
+            ],
+            "collection": self.collection_name,
+            "collection_exists": exists,
+            "collection_status": status_value,
+            "point_count": self.exact_point_count(),
+        }

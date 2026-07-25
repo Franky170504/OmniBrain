@@ -16,8 +16,7 @@ from config.settings import settings
 from config.path_config import *
 
 LOGGER = logging.getLogger("qdrant_ingestion")
-
-load_dotenv()
+load_dotenv(Path(".env"))
 class QdrantIngestionPipeline:
     REQUIRED_FIELDS = {
         "chunk_id",
@@ -27,23 +26,24 @@ class QdrantIngestionPipeline:
         "page_end",
         "text",
     }
+
     def __init__(
             self,
-            chunks_path: str | Path,
-            qdrant_url: str = "http://localhost:6333",
-            collection_name: str = "pdf_chunks",
-            embedding_model: str = "BAAI/bge-small-en-v1.5",
-            api_key: str | None = None,
-            batch_size: int = 64,
-            recreate_collection: bool = False,
-            verbose_logging: bool = False,
+            chunks_path,
+            qdrant_url,
+            qdrant_api_key,
+            collection_name,
+            embedding_model,
+            embedding_batch_size,
+            recreate_collection,
+            verbose_logging,
         ) -> None:
             self.chunks_path = Path(chunks_path)
             self.qdrant_url = qdrant_url
+            self.qdrant_api_key = qdrant_api_key
             self.collection_name = collection_name
             self.embedding_model = embedding_model
-            self.api_key = api_key
-            self.batch_size = batch_size
+            self.embedding_batch_size = embedding_batch_size
             self.recreate_collection = recreate_collection
             self.verbose_logging = verbose_logging
             self.client: QdrantClient | None = None
@@ -62,7 +62,7 @@ class QdrantIngestionPipeline:
         LOGGER.info("Connecting to Qdrant at %s", self.qdrant_url)
         self.client = QdrantClient(
             url=self.qdrant_url,
-            api_key=self.api_key,
+            api_key=self.qdrant_api_key,
             timeout=120,
         )
         self.client.get_collections()
@@ -132,7 +132,7 @@ class QdrantIngestionPipeline:
         for record in records:
             batch.append(record)
 
-            if len(batch) >= self.batch_size:
+            if len(batch) >= self.embedding_batch_size:
                 yield batch
                 batch = []
 
@@ -302,7 +302,7 @@ class QdrantIngestionPipeline:
             ids=ids,
             vectors=documents,
             payload=payloads,
-            batch_size=self.batch_size,
+            batch_size=self.embedding_batch_size,
             parallel=1,
             max_retries=3,
             wait=True,
@@ -491,11 +491,12 @@ class QdrantIngestionPipeline:
 if __name__ == "__main__":
     pipeline = QdrantIngestionPipeline(CHUNKS,
         qdrant_url=settings.qdrant_url,
-        api_key=settings.qdrant_api_key,
-        collection_name=settings.qdrant_collection,
+        qdrant_api_key=settings.qdrant_api_key,
+        collection_name=settings.collection_name,
         embedding_model=settings.embedding_model,
-        batch_size=settings.embedding_batch_size,
+        embedding_batch_size=settings.embedding_batch_size,
         recreate_collection=False,
+        verbose_logging=True
     )
 
     pipeline.run()
