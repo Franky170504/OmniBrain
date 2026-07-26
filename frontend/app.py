@@ -225,7 +225,7 @@ st.markdown(
 with st.sidebar:
     st.markdown("###  Upload Documents")
     uploaded = st.file_uploader(
-        "Upload PDF / DOCX / TXT",
+        "Drag & drop or browse your PDF, DOCX or TXT files",
         type=["pdf", "docx", "txt"],
         accept_multiple_files=True,
     )
@@ -262,7 +262,7 @@ with st.sidebar:
         for f in st.session_state.uploaded_files_info:
             st.markdown(f"• {f['name']}")
     else:
-        st.caption("No documents uploaded yet.")
+        st.info("No documents uploaded yet. Upload your first file to get started.")
 
     st.markdown("---")
     st.markdown("### Settings")
