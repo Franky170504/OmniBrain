@@ -69,18 +69,31 @@ st.markdown(
 
         /* Top navbar */
         .ob-navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.8rem 1.2rem;
-            background-color: #1E293B;
-            border-radius:12px;
-            margin-bottom: 1.2rem;
-        }
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #1E293B, #243B55);
+    border-radius: 18px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #334155;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+}
+
         .ob-navbar h2 {
-            margin: 0;
-            color: #FFFFFF;
-        }
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.workspace-badge {
+    background: #3B82F6;
+    color: white;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
 
         /* Buttons -> blue accent */
         div.stButton > button {
@@ -195,10 +208,12 @@ def process_uploaded_file(file):
 # ----------------------------------------------------------------------
 st.markdown(
     """
-    <div class="ob-navbar">
-        <h2> OmniBrain</h2>
-        <div>Workspace</div>
+   <div class="ob-navbar">
+    <h2>OmniBrain</h2>
+    <div class="workspace-badge">
+        Workspace
     </div>
+</div>
     """,
     unsafe_allow_html=True,
 )
