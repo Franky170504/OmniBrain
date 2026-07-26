@@ -61,10 +61,11 @@ st.markdown(
         /* Card-like containers */
         .ob-card {
             background-color: #1E293B;
-            padding: 1rem 1.2rem;
-            border-radius:12px;
+            padding: 1.4rem 1.6rem;
+            border-radius:18px;
             margin-bottom: 0.8rem;
             border: 1px solid #334155;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.18);
         }
 
         /* Top navbar */
@@ -283,8 +284,13 @@ with main_col:
             """
             <div class="ob-card" style="text-align:center; padding:3rem;">
                 <h1> OmniBrain</h1>
-                <p style="color:#94A3B8;">AI-powered Research Workspace</p>
-                <p>Upload research documents and interact with them using AI.</p>
+                <p style="color:#CBD5E1; font-size:1.15rem;">
+AI-powered Research Workspace
+</p>
+
+<p style="color:#94A3B8; line-height:1.8;">
+Upload your research documents and interact with them using AI-powered insights, summaries and contextual conversations.
+</p>
             </div>
             """,
             unsafe_allow_html=True,
