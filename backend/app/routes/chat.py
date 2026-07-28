@@ -8,15 +8,9 @@ from app.dependencies import get_chat_service
 from app.models.schemas import ChatRequest,ChatResponse,ErrorResponse
 from app.services.chat_service import ChatService
 
-
 LOGGER = logging.getLogger("omnibrain.routes.chat")
 
-
-router = APIRouter(
-    prefix="/chat",
-    tags=["Document Chat"],
-)
-
+router = APIRouter(prefix="/chat", tags=["Document Chat"])
 
 @router.post(
     "",
@@ -43,6 +37,7 @@ router = APIRouter(
         "agent."
     ),
 )
+
 def chat_with_document(
     request: ChatRequest,
     chat_service: ChatService = Depends(get_chat_service),
@@ -106,12 +101,7 @@ def chat_with_document(
             error=result.get("error"),
         )
 
-        LOGGER.info(
-            "Chat request completed route=%s source_count=%d",
-            response.route,
-            len(response.sources),
-        )
-
+        LOGGER.info("Chat request completed route=%s source_count=%d", response.route, len(response.sources))
         return response
 
     except HTTPException:
@@ -131,7 +121,7 @@ def chat_with_document(
     except RuntimeError as exc:
         LOGGER.exception(
             "Chat workflow failed: %s",
-            exc,
+            exc
         )
 
         raise HTTPException(
@@ -143,7 +133,6 @@ def chat_with_document(
         LOGGER.exception(
             "Unexpected chat workflow error",
         )
-
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(

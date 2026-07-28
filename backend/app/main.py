@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.agents.graph import OmniBrainGraph
-from config.settings import settings
 from app.core.app_config import app_settings
 from app.core.langsmith_config import configure_langsmith
 from app.routes import chat, health, upload
@@ -13,11 +12,11 @@ from app.services.chat_service import ChatService
 from app.services.document_service import DocumentService
 from app.services.qdrant_service import QdrantService
 from app.services.rag_service import RagService
-from pathlib import Path
-import os
-from dotenv import load_dotenv
-load_dotenv(Path(".env"))
 
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv(Path(".env"))
 
 cors_origins = app_settings.CORS_ORIGINS or [
     "http://localhost:8501",
@@ -33,22 +32,10 @@ async def lifespan(app: FastAPI):
     qdrant_service = QdrantService()
     qdrant_service.connect()
     qdrant_service.ensure_collection()
-
-    document_service = DocumentService(
-        qdrant_service=qdrant_service,
-    )
-
-    rag_service = RagService(
-        qdrant_service=qdrant_service,
-    )
-
-    agent_graph = OmniBrainGraph(
-        rag_service=rag_service,
-    )
-
-    chat_service = ChatService(
-        agent_graph=agent_graph,
-    )
+    document_service = DocumentService(qdrant_service=qdrant_service)
+    rag_service = RagService(qdrant_service=qdrant_service)
+    agent_graph = OmniBrainGraph(rag_service=rag_service)
+    chat_service = ChatService(agent_graph=agent_graph)
 
     app.state.qdrant_service = qdrant_service
     app.state.document_service = document_service
@@ -56,11 +43,9 @@ async def lifespan(app: FastAPI):
     app.state.agent_graph = agent_graph
     app.state.chat_service = chat_service
     
-
     yield
 
     qdrant_service.close()
-
 
 app = FastAPI(
     title="OmniBrain API",

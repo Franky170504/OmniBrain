@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from app.agents.state import AgentState
 from app.services.rag_service import RagService
 
@@ -10,7 +11,6 @@ class DocumentAgentNode:
         question = state.get("question", "").strip()
         user_id = state.get("user_id", "").strip()
         document_id = state.get("document_id")
-
         if not document_id:
             return {
                 "answer": (

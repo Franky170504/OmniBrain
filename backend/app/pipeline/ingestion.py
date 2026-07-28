@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-
 import json
 import logging
-import os
 import uuid
 
 from collections.abc import Iterator
@@ -116,8 +114,7 @@ class QdrantIngestionPipeline:
                 text = record.get("text")
 
                 if not isinstance(text, str) or not text.strip():
-                    LOGGER.warning(
-                        "Skipping line %s because text is empty",line_number)
+                    LOGGER.warning("Skipping line %s because text is empty",line_number)
                     continue
 
                 yield line_number, record
@@ -498,5 +495,4 @@ if __name__ == "__main__":
         recreate_collection=False,
         verbose_logging=True
     )
-
     pipeline.run()

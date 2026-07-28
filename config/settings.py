@@ -1,8 +1,11 @@
 from __future__ import annotations
-import os
+
 from pathlib import Path
 from dataclasses import dataclass
 from dotenv import load_dotenv
+
+import os
+
 load_dotenv(Path(".env"))
 
 @dataclass(frozen=True)
@@ -38,24 +41,24 @@ def load_settings() -> Settings:
         project_version = os.getenv("PROJECT_VERSION"),
 
         qdrant_url=os.getenv("QDRANT_URL",),
-        qdrant_api_key=(os.getenv("QDRANT_API_KEY")  ),
+        qdrant_api_key=os.getenv("QDRANT_API_KEY"),
         collection_name=os.getenv("COLLECTION_NAME"),
 
-        qdrant_score_threshold=(os.getenv("QDRANT_SCORE_THRESHOLD")),
+        qdrant_score_threshold=os.getenv("QDRANT_SCORE_THRESHOLD"),
         qdrant_search_limit=int(os.getenv("QDRANT_SEARCH_LIMIT")),
 
         embedding_model=os.getenv("EMBEDDING_MODEL"),
         embedding_batch_size=int(os.getenv("EMBEDDING_BATCH_SIZE")),
 
-        groq_api_key=(os.getenv("GROQ_API_KEY")),
-        groq_model=(os.getenv("GROQ_MODEL")),
-        groq_supervisior_model=(os.getenv("GROQ_SUPERVISIOR_MODEL")),
-        groq_general_model=(os.getenv("GROQ_GENERAL_MODEL")),
+        groq_api_key=os.getenv("GROQ_API_KEY"),
+        groq_model=os.getenv("GROQ_MODEL"),
+        groq_supervisior_model=os.getenv("GROQ_SUPERVISIOR_MODEL"),
+        groq_general_model=os.getenv("GROQ_GENERAL_MODEL"),
 
-        langsmith_tracing=(os.getenv("LANGSMITH_TRACKING")),
-        langsmith_api_key=(os.getenv("LANGSMITH_API_KEY")),
-        langsmith_project=(os.getenv("LANGSMITH_PROJECT")),
-        langsmith_endpoint=(os.getenv("LANGSMITH_ENDPOINT")),
+        langsmith_tracing=os.getenv("LANGSMITH_TRACKING"),
+        langsmith_api_key=os.getenv("LANGSMITH_API_KEY"),
+        langsmith_project=os.getenv("LANGSMITH_PROJECT"),
+        langsmith_endpoint=os.getenv("LANGSMITH_ENDPOINT"),
 
         max_upload_size_mb=os.getenv("MAX_UPLOAD_SIZE_MB"),
     )

@@ -51,10 +51,8 @@ class AppSettings(BaseSettings):
     @classmethod
     def resolve_path(cls, value: object) -> Path:
         path = Path(str(value))
-
         if not path.is_absolute():
             path = BASE_DIR / path
-
         return path.resolve()
     
     @field_validator("QDRANT_API_KEY", "GROQ_API_KEY","LANGSMITH_API_KEY","LANGSMITH_PROJECT",mode="before")

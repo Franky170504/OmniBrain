@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from app.agents.state import AgentState
 
-
 class ClarifyAgentNode:
     def __call__(self, state: AgentState) -> dict:
         question = state.get("question", "").strip()
@@ -20,7 +19,6 @@ class ClarifyAgentNode:
                 "Please provide more information so I can route "
                 "your question correctly."
             )
-
         return {
             "answer": answer,
             "sources": [],

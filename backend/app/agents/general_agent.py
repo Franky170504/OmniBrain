@@ -17,7 +17,6 @@ class GeneralAgentNode:
 
     def __call__(self, state: AgentState) -> dict:
         question = state.get("question", "").strip()
-
         response = self.model.invoke(
             [
                 SystemMessage(
