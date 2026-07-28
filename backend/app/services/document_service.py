@@ -2,7 +2,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 from fastapi import UploadFile, HTTPException, status
-from backend.app.core.app_config import settings
+from backend.app.core.app_config import app_settings
 from backend.app.pipeline.parsing_pipeline import parse_pdf
 from backend.app.services.qdrant_service import QdrantService
 
@@ -13,12 +13,12 @@ class DocumentService:
     ) -> None:
         self.qdrant_service = qdrant_service
 
-        settings.INPUT_DIR.mkdir(
+        app_settings.INPUT_DIR.mkdir(
             parents=True,
             exist_ok=True,
         )
 
-        settings.OUTPUT_DIR.mkdir(
+        app_settings.OUTPUT_DIR.mkdir(
             parents=True,
             exist_ok=True,
         )
@@ -52,11 +52,11 @@ class DocumentService:
         )
 
         saved_path = (
-            settings.OUTPUT_DIR
+            app_settings.OUTPUT_DIR
             / stored_filename
         )
 
-        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        max_bytes = app_settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
         bytes_written = 0
 
         try:
@@ -67,7 +67,7 @@ class DocumentService:
                     if bytes_written > max_bytes:
                         raise ValueError(
                             "Uploaded file exceeds the maximum "
-                            f"size of {settings.MAX_UPLOAD_SIZE_MB} MB."
+                            f"size of {app_settings.MAX_UPLOAD_SIZE_MB} MB."
                         )
 
                     output_file.write(chunk)
@@ -94,7 +94,7 @@ class DocumentService:
         try:
             document, chunks, images = parse_pdf(
                 pdf_path=saved_path,
-                output_path=settings.OUTPUT_DIR,
+                output_path=app_settings.OUTPUT_DIR,
                 chunk_size=2_000,
                 overlap=250,
             )

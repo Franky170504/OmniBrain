@@ -12,8 +12,8 @@ from typing import Any
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient, models
 
-from config.settings import settings
-from config.path_config import *
+from backend.config.settings import settings
+from backend.config.path_config import *
 
 LOGGER = logging.getLogger("qdrant_ingestion")
 load_dotenv(Path(".env"))

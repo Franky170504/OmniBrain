@@ -1,14 +1,21 @@
 from __future__ import annotations
+
 from typing import Any
-from backend.app.services.rag_service import RagService
+from langsmith import traceable
+from app.agents.graph import OmniBrainGraph
+
 
 class ChatService:
     def __init__(
         self,
-        rag_service: RagService,
+        agent_graph: OmniBrainGraph,
     ) -> None:
-        self.rag_service = rag_service
+        self.agent_graph = agent_graph
 
+    @traceable(
+        name="omnibrain-chat-request",
+        run_type="chain",
+    )
     def ask(
         self,
         *,
@@ -16,7 +23,7 @@ class ChatService:
         user_id: str,
         document_id: str | None = None,
     ) -> dict[str, Any]:
-        return self.rag_service.answer(
+        return self.agent_graph.invoke(
             question=question,
             user_id=user_id,
             document_id=document_id,
