@@ -218,6 +218,8 @@ __marimo__/
 .streamlit/secrets.toml
 
 input/
+output/
+qdrant_storage/
 .vscode/
 
 # ============================================================================
