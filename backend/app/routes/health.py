@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from backend.app.dependencies import get_qdrant_service
 from backend.app.models.schemas import HealthResponse
-from src.vectors.service import QdrantService
+from backend.app.services.qdrant_service import QdrantService
 
 router = APIRouter(prefix="/health",tags=["Health Check"],)
 
