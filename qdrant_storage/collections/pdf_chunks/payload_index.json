@@ -1,1 +1,1 @@
-{"schema":{"chunk_id":"keyword","file_sha256":"keyword","page_end":"integer","chunk_index":"integer","document_id":"keyword","page_start":"integer","filename":"keyword"}}
+{"schema":{"chunk_id":"keyword","document_id":"keyword","file_sha256":"keyword","filename":"keyword","chunk_index":"integer","page_start":"integer","page_end":"integer"}}
