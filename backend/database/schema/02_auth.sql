@@ -154,6 +154,27 @@ COMMENT ON INDEX idx_users_active IS
 
 
 -- ============================================================================
+-- TRIGGER: set_updated_at
+-- Purpose:
+-- Automatically update `updated_at` on row updates for `users`.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION auth.set_updated_at()
+RETURNS TRIGGER AS
+$$
+BEGIN
+    NEW.updated_at = clock_timestamp();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_users_set_updated_at
+BEFORE UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION auth.set_updated_at();
+
+
+-- ============================================================================
 -- SEED DATA
 -- ============================================================================
 
