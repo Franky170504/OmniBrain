@@ -38,9 +38,7 @@ class AppSettings(BaseSettings):
 
     CORS_ORIGINS: list[str] = Field(
         default_factory=lambda: [
-            "http://localhost:8501",
             "http://127.0.0.1:8501",
-            "http://localhost:8000",
             "http://127.0.0.1:8000",
         ]
     )

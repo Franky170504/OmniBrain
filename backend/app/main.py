@@ -19,9 +19,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(".env"))
 
 cors_origins = app_settings.CORS_ORIGINS or [
-    "http://localhost:8501",
     "http://127.0.0.1:8501",
-    "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
 
@@ -52,6 +50,13 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+@app.get("/", tags=["Root"])
+def root() -> dict:
+    return {
+        "status": "ok",
+        "message": "OmniBrain API is running",
+    }
 
 app.add_middleware(
     CORSMiddleware,

@@ -276,21 +276,53 @@ class QdrantService:
             return 0
         return self.get_client().count(collection_name=self.collection_name,exact=True).count
 
-    def health(self) -> dict[str, Any]:
-        client = self.get_client()
-        collections = client.get_collections()
-        exists = client.collection_exists(self.collection_name)
-        status_value: str | None = None
+    def health(self) -> dict:
+        try:
+            client = self.get_client()
 
-        if exists:
-            info = client.get_collection(self.collection_name)
-            status_value = str(info.status)
+            collection_exists = client.collection_exists(
+                collection_name=self.collection_name
+            )
 
-        return {
-            "connected": True,
-            "available_collections": [item.name for item in collections.collections],
-            "collection": self.collection_name,
-            "collection_exists": exists,
-            "collection_status": status_value,
-            "point_count": self.exact_point_count(),
-        }
+            points_count: int | None = None
+
+            if collection_exists:
+                collection = client.get_collection(
+                    collection_name=self.collection_name
+                )
+
+                points_count = collection.points_count
+
+            return {
+                "status": "healthy",
+                "collection_name": self.collection_name,
+                "collection_exists": collection_exists,
+                "points_count": points_count,
+                "error": None,
+            }
+
+        except Exception as exc:
+            return {
+                "status": "unhealthy",
+                "collection_name": self.collection_name,
+                "collection_exists": False,
+                "points_count": None,
+                "error": str(exc),
+            }
+            client = self.get_client()
+            collections = client.get_collections()
+            exists = client.collection_exists(self.collection_name)
+            status_value: str | None = None
+
+            if exists:
+                info = client.get_collection(self.collection_name)
+                status_value = str(info.status)
+
+            return {
+                "connected": True,
+                "available_collections": [item.name for item in collections.collections],
+                "collection": self.collection_name,
+                "collection_exists": exists,
+                "collection_status": status_value,
+                "point_count": self.exact_point_count(),
+            }
