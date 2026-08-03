@@ -9,12 +9,8 @@ AgentRoute = Literal[
     "clarify_agent",
 ]
 
-class HealthResponse(BaseModel):
-    status: Literal[
-        "healthy",
-        "degraded",
-        "unhealthy",
-    ]
+class QdrantHealthResponse(BaseModel):
+    status: Literal["healthy","unhealthy"]
     qdrant_initialized: bool
     document_service_initialized: bool
     rag_service_initialized: bool
@@ -22,6 +18,14 @@ class HealthResponse(BaseModel):
     chat_service_initialized: bool
     langsmith_tracing_enabled: bool = False
     langsmith_project: str | None = None
+
+class HealthResponse(BaseModel):
+    status: Literal[
+        "healthy",
+        "degraded",
+        "unhealthy",
+    ]
+    qdrant: QdrantHealthResponse
 
 class UploadResponse(BaseModel):
     message: str

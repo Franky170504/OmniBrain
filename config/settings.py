@@ -12,6 +12,7 @@ load_dotenv(Path(".env"))
 class Settings:
     project_name: str
     project_version: str
+    fast_api_url: str
 
     qdrant_url: str
     qdrant_api_key: str | None
@@ -39,8 +40,9 @@ def load_settings() -> Settings:
     return Settings(
         project_name = os.getenv("PROJECT_NAME"),
         project_version = os.getenv("PROJECT_VERSION"),
+        fast_api_url = os.getenv("FAST_API_URL"),
 
-        qdrant_url=os.getenv("QDRANT_URL",),
+        qdrant_url=os.getenv("QDRANT_URL"),
         qdrant_api_key=os.getenv("QDRANT_API_KEY"),
         collection_name=os.getenv("COLLECTION_NAME"),
 
