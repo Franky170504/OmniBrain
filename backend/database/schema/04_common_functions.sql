@@ -174,3 +174,26 @@ BEFORE UPDATE
 ON auth.users
 FOR EACH ROW
 EXECUTE FUNCTION common.set_updated_at();
+
+
+SET search_path TO public;
+
+-- ============================================================================
+-- FUNCTION : update_updated_at_column()
+-- Description:
+-- Automatically updates the updated_at timestamp before every UPDATE.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    NEW.updated_at := CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
+COMMENT ON FUNCTION public.update_updated_at_column() IS
+'Automatically updates the updated_at column before UPDATE operations.';
