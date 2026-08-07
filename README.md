@@ -28,6 +28,14 @@ An agentic, multi-modal RAG workspace for uploading PDFs and asking grounded que
 
 The Streamlit app is normally available at `http://127.0.0.1:8501`. The FastAPI documentation is at `http://127.0.0.1:8000/docs`.
 
+## Screenshots
+
+The Streamlit research workspace is running locally and ready for PDF upload and agentic Q&A.
+
+![OmniBrain research workspace](docs/screenshots/omnibrain-research-workspace.png)
+
+![Streamlit local server](docs/screenshots/streamlit-local-server.png)
+
 ## API keys
 
 - [Groq](https://console.groq.com/)
