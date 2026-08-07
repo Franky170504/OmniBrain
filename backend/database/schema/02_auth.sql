@@ -1,37 +1,6 @@
-/*
-===============================================================================
-Project      : OmniBrain - Enterprise Agentic Multi-Modal RAG Platform
-Schema       : auth
-File         : 02_auth.sql
-Version      : 1.0
-Author       : Database Engineering Team
-
-Description:
-Creates the authentication and authorization schema for OmniBrain.
-
-Dependencies:
-    - 00_extensions.sql
-    - 01_schemas.sql
-
-Tables:
-    - roles
-    - users
-
-===============================================================================
-*/
-
 BEGIN;
-
 SET search_path TO auth;
-
--- ============================================================================
--- TABLE: roles
--- Purpose:
--- Stores all application roles used for Role-Based Access Control (RBAC).
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS roles
-(
+CREATE TABLE IF NOT EXISTS roles(
     role_id UUID PRIMARY KEY
         DEFAULT gen_random_uuid(),
 
@@ -64,15 +33,7 @@ COMMENT ON COLUMN roles.description IS
 COMMENT ON COLUMN roles.created_at IS
 'Timestamp when the role was created.';
 
-
--- ============================================================================
--- TABLE: users
--- Purpose:
--- Stores authenticated OmniBrain users.
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS users
-(
+CREATE TABLE IF NOT EXISTS users(
     user_id UUID PRIMARY KEY
         DEFAULT gen_random_uuid(),
 
@@ -135,7 +96,6 @@ COMMENT ON COLUMN users.created_at IS
 COMMENT ON COLUMN users.updated_at IS
 'Timestamp when the user account was last updated.';
 
-
 -- ============================================================================
 -- INDEXES
 -- ============================================================================
@@ -152,50 +112,14 @@ COMMENT ON INDEX idx_users_role IS
 COMMENT ON INDEX idx_users_active IS
 'Optimizes filtering of active users.';
 
-
--- ============================================================================
--- TRIGGER: set_updated_at
--- Purpose:
--- Automatically update `updated_at` on row updates for `users`.
--- ============================================================================
-
-CREATE OR REPLACE FUNCTION auth.set_updated_at()
-RETURNS TRIGGER AS
-$$
-BEGIN
-    NEW.updated_at = clock_timestamp();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_users_set_updated_at
-BEFORE UPDATE ON users
-FOR EACH ROW
-EXECUTE FUNCTION auth.set_updated_at();
-
-
 -- ============================================================================
 -- SEED DATA
 -- ============================================================================
 
-INSERT INTO roles
-(
-    role_name,
-    description
-)
-VALUES
-(
-    'Admin',
-    'Full system administrator with unrestricted access.'
-),
-(
-    'Editor',
-    'Can manage and curate knowledge assets.'
-),
-(
-    'Viewer',
-    'Read-only access to the knowledge base.'
-)
+INSERT INTO roles(role_name,description)
+VALUES('Admin', 'Full system administrator with unrestricted access.'),
+('Editor','Can manage and curate knowledge assets.'),
+('Viewer','Read-only access to the knowledge base.')
 ON CONFLICT (role_name)
 DO NOTHING;
 

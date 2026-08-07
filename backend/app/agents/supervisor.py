@@ -1,75 +1,57 @@
 from __future__ import annotations
 
 from typing import Literal
+
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
-from app.agents.state import AgentRoute, AgentState
-from config.settings import settings
+
+from app.agents.state import AgentState
+from app.core.app_config import app_settings
 
 
 class SupervisorDecision(BaseModel):
-    route: Literal[
-        "document_agent",
-        "general_agent",
-        "clarify_agent",
-    ] = Field(description="The agent that should process the request.")
+    route: Literal["document_agent", "general_agent", "clarify_agent"]
+    reason: str = Field(min_length=1)
 
-    reason: str = Field(description="A brief explanation of the routing decision.")
 
 class SupervisorNode:
     def __init__(self) -> None:
-        if not settings.groq_api_key:
-            raise RuntimeError("GROQ_API_KEY is required for the supervisor.")
-
-        model_name = (settings.groq_supervisior_model or settings.groq_model)
-        model = ChatGroq(
-            model=model_name,
-            api_key=settings.groq_api_key,
+        llm = ChatGroq(
+            api_key=app_settings.GROQ_API_KEY,
+            model=app_settings.GROQ_SUPERVISIOR_MODEL,
             temperature=0,
-            max_retries=0,
         )
-        self.router = model.with_structured_output(SupervisorDecision)
+        self.router = llm.with_structured_output(SupervisorDecision)
 
-    def __call__(self, state: AgentState) -> dict:
+    async def __call__(self, state: AgentState) -> dict:
         question = state.get("question", "").strip()
         document_id = state.get("document_id")
-        if not question:
-            return {
-                "route": "clarify_agent",
-                "route_reason": "No question was provided.",
-            }
-        prompt = f"""
-                    You are the supervisor for OmniBrain.
 
-                    Choose exactly one route:
+        system_prompt = """
+You are the OmniBrain supervisor. Route the request; do not answer it.
 
-                    document_agent:
-                    Use this route when the user asks about an uploaded PDF, book,
-                    report, document, chapter, author, table, summary, or document fact.
+Routes:
+- document_agent: the user asks for facts, summaries, calculations, comparisons,
+  evidence, or analysis that must come from the selected uploaded document.
+- general_agent: the question is general knowledge and can be answered without
+  an uploaded document.
+- clarify_agent: critical information is missing or the request is ambiguous.
+  Use this when a document-specific request has no document_id, or when the
+  requested metric/comparison/entities are too unclear to answer responsibly.
 
-                    general_agent:
-                    Use this route for general questions that do not depend on an
-                    uploaded document.
+Return exactly one valid structured route and a concise reason.
+""".strip()
 
-                    clarify_agent:
-                    Use this route when the question refers to a document but no
-                    document_id is available, or when the request is unclear.
-
-                    Document ID:
-                    {document_id or "NONE"}
-
-                    Question:
-                    {question}
-
-                    Do not answer the question. Only select the route.
-                    """.strip()
-
-        decision = self.router.invoke(prompt)
-        return {
-            "route": decision.route,
-            "route_reason": decision.reason,
-        }
-
-
-def supervisor_router(state: AgentState) -> AgentRoute:
-    return state.get("route", "clarify_agent")
+        response = await self.router.ainvoke(
+            [
+                SystemMessage(content=system_prompt),
+                HumanMessage(
+                    content=(
+                        f"Question: {question}\n"
+                        f"Selected document_id: {document_id or 'NONE'}"
+                    )
+                ),
+            ]
+        )
+        return {"route": response.route, "route_reason": response.reason}

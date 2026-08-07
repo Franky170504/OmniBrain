@@ -4,39 +4,34 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 
 from app.agents.state import AgentState
-from config.settings import settings
+from app.core.app_config import app_settings
 
-class GeneralAgentNode:
+
+class GeneralAgent:
     def __init__(self) -> None:
-        self.model = ChatGroq(
-            model=settings.groq_general_model,
-            api_key=settings.groq_api_key,
+        self.llm = ChatGroq(
+            api_key=app_settings.GROQ_API_KEY,
+            model=app_settings.GROQ_GENERAL_MODEL,
             temperature=0.2,
-            max_retries=0,
         )
 
-    def __call__(self, state: AgentState) -> dict:
-        question = state.get("question", "").strip()
-        response = self.model.invoke(
+    async def __call__(self, state: AgentState) -> dict:
+        response = await self.llm.ainvoke(
             [
                 SystemMessage(
                     content=(
-                        "You are OmniBrain's general assistant. "
-                        "Answer clearly and directly."
+                        "You are OmniBrain's general analysis agent. Give a clear, accurate answer. "
+                        "For financial questions, distinguish facts, formulas, assumptions, and possible interpretations. "
+                        "Do not pretend you used an uploaded document when the request is general knowledge."
                     )
                 ),
-                HumanMessage(content=question),
+                HumanMessage(content=state["question"]),
             ]
         )
-
-        answer = (
-            response.content
-            if isinstance(response.content, str)
-            else str(response.content)
-        )
-
         return {
-            "answer": answer,
+            "answer": str(response.content),
             "sources": [],
+            "context_items": [],
+            "retrieval_latency_ms": None,
             "error": None,
         }

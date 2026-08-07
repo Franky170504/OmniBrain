@@ -1,334 +1,209 @@
 from __future__ import annotations
 
-import os
-from typing import Any
-
 import streamlit as st
 
-from frontend.api_client import OmniBrainAPIClient
+from api_client import OmniBrainAPIClient
 
+st.set_page_config(page_title="OmniBrain", layout="wide")
+st.title("OmniBrain")
+st.caption("Agentic document analysis with PostgreSQL history + Qdrant retrieval")
 
-DEFAULT_BACKEND_URL = os.getenv("OMNIBRAIN_API_URL","http://127.0.0.1:8000")
-
-st.set_page_config(page_title="OmniBrain",layout="wide")
-
-def initialize_state() -> None:
-    defaults: dict[str, Any] = {
+def init_state() -> None:
+    defaults = {
+        "backend_url": "http://127.0.0.1:8000",
         "user_id": "local-user",
         "document_id": None,
         "document_name": None,
-        "upload_result": None,
+        "session_id": None,
         "messages": [],
-        "backend_url": DEFAULT_BACKEND_URL,
+        "upload_result": None,
     }
-
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
 
-def render_source(source: dict[str, Any], index: int) -> None:
-    filename = source.get("filename") or "Unknown document"
-    page_start = source.get("page_start")
-    page_end = source.get("page_end")
-    score = source.get("score")
-
-    if page_start is None:
-        page_label = "Page unavailable"
-    elif page_end is None or page_start == page_end:
-        page_label = f"Page {page_start}"
-    else:
-        page_label = f"Pages {page_start}–{page_end}"
-
-    with st.expander(
-        f"Source {index}: {filename} — {page_label}"
-    ):
-        st.write(
-            {
-                "document_id": source.get("document_id"),
-                "chunk_id": source.get("chunk_id"),
-                "point_id": source.get("point_id"),
-                "filename": filename,
-                "page_start": page_start,
-                "page_end": page_end,
-                "score": score,
-            }
-        )
-
-
-initialize_state()
-
-st.title("OmniBrain")
-st.caption(
-    "Upload PDFs, index them in Qdrant, and ask questions "
-    "through the LangGraph supervisor."
-)
+init_state()
 
 with st.sidebar:
     st.header("Connection")
-    backend_url = st.text_input("FastAPI URL",value=st.session_state.backend_url).strip()
-    st.session_state.backend_url = backend_url
-    user_id = st.text_input("User ID",value=st.session_state.user_id).strip()
-    st.session_state.user_id = user_id or "local-user"
-    client = OmniBrainAPIClient(base_url=st.session_state.backend_url)
+    st.session_state.backend_url = st.text_input(
+        "Backend URL", value=st.session_state.backend_url
+    ).rstrip("/")
+    st.session_state.user_id = st.text_input(
+        "User ID / alias", value=st.session_state.user_id
+    ).strip()
+    client = OmniBrainAPIClient(st.session_state.backend_url)
+
     if st.button("Check backend health", use_container_width=True):
         try:
-            health = client.health()
-            st.success("Backend is reachable.")
-            st.json(health)
+            st.json(client.health())
         except Exception as exc:
             st.error(str(exc))
 
     st.divider()
-    st.subheader("Current document")
-    if st.session_state.document_id:
-        st.success(st.session_state.document_name or "Document selected")
-        st.code(st.session_state.document_id)
-        if st.button("Clear selected document",use_container_width=True,):
-            st.session_state.document_id = None
-            st.session_state.document_name = None
-            st.session_state.upload_result = None
-            st.rerun()
-    else:
-        st.info("No document selected.")
+    st.write("Selected document:")
+    st.code(st.session_state.document_id or "None")
+    st.write("Chat session:")
+    st.code(st.session_state.session_id or "New session")
 
-upload_tab, chat_tab, status_tab = st.tabs(
-    [
-        "Upload Document",
-        "Chat",
-        "Status",
-    ]
+upload_tab, chat_tab, history_tab, status_tab = st.tabs(
+    ["Upload", "Chat", "History", "Status"]
 )
 
 with upload_tab:
     st.subheader("Upload and index a PDF")
-
-    uploaded_file = st.file_uploader(
-        "Choose a PDF document",
-        type=["pdf"],
-        accept_multiple_files=False,
-    )
-
-    if uploaded_file is not None:
+    uploaded = st.file_uploader("Choose PDF", type=["pdf"])
+    if uploaded is not None:
         st.write(
             {
-                "filename": uploaded_file.name,
-                "type": uploaded_file.type,
-                "size_bytes": uploaded_file.size,
+                "filename": uploaded.name,
+                "type": uploaded.type,
+                "size_bytes": uploaded.size,
             }
         )
-
-    upload_clicked = st.button("Upload and index",type="primary",disabled=uploaded_file is None)
-
-    if upload_clicked and uploaded_file is not None:
-        if not st.session_state.user_id:
-            st.error("User ID is required.")
-        else:
+        if st.button("Upload and index", type="primary"):
             try:
-                with st.spinner(
-                    "Uploading, parsing, and indexing document..."
-                ):
-                    result = client.upload_document(
-                        file_name=uploaded_file.name,
-                        file_bytes=uploaded_file.getvalue(),
-                        content_type=(
-                            uploaded_file.type
-                            or "application/pdf"
-                        ),
+                with st.spinner("Parsing, embedding, indexing, and saving metadata..."):
+                    result = client.upload(
+                        file_name=uploaded.name,
+                        file_bytes=uploaded.getvalue(),
                         user_id=st.session_state.user_id,
                     )
-
                 st.session_state.upload_result = result
-                st.session_state.document_id = result.get(
-                    "document_id"
-                )
-                st.session_state.document_name = result.get(
-                    "filename",
-                    uploaded_file.name,
-                )
-
-                st.success(
-                    result.get(
-                        "message",
-                        "Document uploaded and indexed.",
-                    )
-                )
-
+                st.session_state.document_id = result["document_id"]
+                st.session_state.document_name = result["filename"]
+                st.session_state.session_id = None
+                st.session_state.messages = []
+                st.success(result["message"])
+                st.json(result)
             except Exception as exc:
                 st.error(str(exc))
 
-    if st.session_state.upload_result:
-        result = st.session_state.upload_result
+    st.divider()
+    if st.button("Refresh my indexed documents"):
+        try:
+            docs = client.list_documents(user_id=st.session_state.user_id)
+            st.session_state["documents"] = docs
+        except Exception as exc:
+            st.error(str(exc))
 
-        col1, col2, col3, col4 = st.columns(4)
-
-        col1.metric(
-            "Pages",
-            result.get("page_count", 0),
-        )
-
-        col2.metric(
-            "Chunks",
-            result.get("chunk_count", 0),
-        )
-
-        col3.metric(
-            "Images",
-            result.get("image_count", 0),
-        )
-
-        col4.metric(
-            "Indexed points",
-            result.get("indexed_points", 0),
-        )
-
-        st.write("Document ID")
-
-        st.code(
-            result.get("document_id", "Unavailable")
-        )
-
-        with st.expander("Full upload response"):
-            st.json(result)
+    docs = st.session_state.get("documents", [])
+    if docs:
+        options = {
+            f"{d['original_filename']} — {d['processing_status']} — {d['document_id']}": d
+            for d in docs
+        }
+        selected_label = st.selectbox("Use an existing document", list(options))
+        if st.button("Select document"):
+            selected = options[selected_label]
+            st.session_state.document_id = str(selected["document_id"])
+            st.session_state.document_name = selected["original_filename"]
+            st.session_state.session_id = None
+            st.session_state.messages = []
+            st.success(f"Selected {selected['original_filename']}")
 
 with chat_tab:
-    st.subheader("Chat with OmniBrain")
-
-    if st.session_state.document_id:
-        st.info(
-            f"Selected document: "
-            f"{st.session_state.document_name}"
-        )
-    else:
-        st.warning(
-            "No document is selected. General questions can still "
-            "be routed to the general agent."
-        )
-
+    st.subheader("Chat")
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
+            if message.get("route"):
+                st.caption(
+                    f"Route: {message['route']} | Reason: {message.get('route_reason') or 'n/a'}"
+                )
+            if message.get("sources"):
+                with st.expander("Sources"):
+                    st.json(message["sources"])
 
-            route = message.get("route")
-            route_reason = message.get("route_reason")
-            sources = message.get("sources", [])
-
-            if route:
-                st.caption(f"Agent route: `{route}`")
-
-            if route_reason:
-                st.caption(route_reason)
-
-            if sources:
-                for index, source in enumerate(sources,start=1):
-                    render_source(source, index)
-
-    question = st.chat_input("Ask a question about your document...")
-
+    question = st.chat_input("Ask about the selected document or a general question")
     if question:
-        st.session_state.messages.append(
-            {
-                "role": "user",
-                "content": question,
-            }
-        )
-
+        st.session_state.messages.append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.markdown(question)
-
         try:
             with st.chat_message("assistant"):
-                with st.spinner(
-                    "Supervisor is selecting an agent..."
-                ):
+                with st.spinner("Running LangGraph..."):
                     result = client.chat(
                         question=question,
                         user_id=st.session_state.user_id,
-                        document_id=(
-                            st.session_state.document_id
-                        ),
+                        document_id=st.session_state.document_id,
+                        session_id=st.session_state.session_id,
                     )
-
-                answer = result.get(
-                    "answer",
-                    "No answer was returned.",
+                st.session_state.session_id = result["session_id"]
+                st.markdown(result["answer"])
+                st.caption(
+                    f"Route: {result.get('route')} | Reason: {result.get('route_reason') or 'n/a'}"
                 )
-
-                sources = result.get("sources", [])
-                route = result.get("route")
-                route_reason = result.get("route_reason")
-
-                st.markdown(answer)
-
-                if route:
-                    st.caption(f"Agent route: `{route}`")
-
-                if route_reason:
-                    st.caption(route_reason)
-
-                if sources:
-                    st.markdown("#### Sources")
-
-                    for index, source in enumerate(
-                        sources,
-                        start=1,
-                    ):
-                        render_source(source, index)
-
+                if result.get("sources"):
+                    with st.expander("Sources"):
+                        st.json(result["sources"])
             st.session_state.messages.append(
                 {
                     "role": "assistant",
-                    "content": answer,
-                    "sources": sources,
-                    "route": route,
-                    "route_reason": route_reason,
+                    "content": result["answer"],
+                    "route": result.get("route"),
+                    "route_reason": result.get("route_reason"),
+                    "sources": result.get("sources", []),
                 }
             )
-
         except Exception as exc:
-            error_message = str(exc)
+            st.error(str(exc))
 
-            with st.chat_message("assistant"):
-                st.error(error_message)
-
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": f"Error: {error_message}",
-                    "sources": [],
-                    "route": None,
-                    "route_reason": None,
-                }
+with history_tab:
+    st.subheader("Persisted PostgreSQL chat history")
+    if st.button("Refresh sessions"):
+        try:
+            st.session_state["sessions"] = client.list_sessions(
+                user_id=st.session_state.user_id
             )
+        except Exception as exc:
+            st.error(str(exc))
 
-    if st.session_state.messages:
-        if st.button("Clear chat history"):
-            st.session_state.messages = []
-            st.rerun()
+    sessions = st.session_state.get("sessions", [])
+    if sessions:
+        session_map = {
+            f"{item.get('title') or 'Untitled'} — {item['session_id']}": item
+            for item in sessions
+        }
+        chosen = st.selectbox("Saved session", list(session_map))
+        if st.button("Load session"):
+            selected = session_map[chosen]
+            try:
+                messages = client.get_messages(
+                    user_id=st.session_state.user_id,
+                    session_id=str(selected["session_id"]),
+                )
+                st.session_state.session_id = str(selected["session_id"])
+                st.session_state.document_id = (
+                    str(selected["selected_document_id"])
+                    if selected.get("selected_document_id")
+                    else None
+                )
+                st.session_state.messages = [
+                    {
+                        "role": "assistant" if m["role"] == "ASSISTANT" else "user",
+                        "content": m["content"],
+                        "route": (m.get("metadata") or {}).get("route"),
+                        "route_reason": (m.get("metadata") or {}).get("route_reason"),
+                        "sources": (m.get("metadata") or {}).get("sources", []),
+                    }
+                    for m in messages
+                    if m["role"] in ("USER", "ASSISTANT")
+                ]
+                st.success("Session loaded. Open the Chat tab.")
+            except Exception as exc:
+                st.error(str(exc))
 
 with status_tab:
-    st.subheader("Frontend session")
-
-    st.write(
+    st.subheader("Current application state")
+    st.json(
         {
             "backend_url": st.session_state.backend_url,
             "user_id": st.session_state.user_id,
             "document_id": st.session_state.document_id,
             "document_name": st.session_state.document_name,
-            "message_count": len(
-                st.session_state.messages
-            ),
+            "session_id": st.session_state.session_id,
+            "message_count": len(st.session_state.messages),
         }
     )
-
-    if st.button("Refresh backend status"):
-        try:
-            health = client.health()
-            st.success("Backend is healthy.")
-            st.json(health)
-        except Exception as exc:
-            st.error(str(exc))
-
-    if st.session_state.upload_result:
-        with st.expander("Last upload response"):
-            st.json(st.session_state.upload_result)

@@ -1,80 +1,92 @@
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 
-from config.settings import settings
+from app.core.app_config import app_settings
 from app.services.qdrant_service import QdrantService
+
 
 class RagService:
     def __init__(self, qdrant_service: QdrantService) -> None:
         self.qdrant_service = qdrant_service
-        self.model = ChatGroq(
-            model=settings.groq_model,
-            api_key=settings.groq_api_key,
+        self.llm = ChatGroq(
+            api_key=app_settings.GROQ_API_KEY,
+            model=app_settings.GROQ_MODEL,
             temperature=0,
-            max_retries=0,
         )
 
-    @staticmethod
-    def build_context(results: list[dict[str, Any]]) -> str:
-        sections: list[str] = []
+    async def answer(
+        self,
+        *,
+        question: str,
+        user_id: str,
+        document_id: str,
+    ) -> dict[str, Any]:
+        started = perf_counter()
+        retrieved = self.qdrant_service.search(
+            question,
+            user_id=user_id,
+            document_id=document_id,
+            limit=app_settings.QDRANT_SEARCH_LIMIT,
+            score_threshold=app_settings.QDRANT_SCORE_THRESHOLD,
+        )
+        retrieval_latency_ms = int((perf_counter() - started) * 1000)
 
-        for index, result in enumerate(results, start=1):
-            filename = result.get("filename", "Unknown document")
-            page_start = result.get("page_start")
-            page_end = result.get("page_end")
-            sections.append(
-                f"[Source {index}: {filename}, "
-                f"pages {page_start}-{page_end}]\n"
-                f"{result.get('text', '')}"
-            )
-        return "\n\n".join(sections)
-
-    def answer(self, *, question: str, user_id: str, document_id: str | None = None) -> dict[str, Any]:
-        results = self.qdrant_service.search(question, user_id=user_id, document_id=document_id)
-        if not results:
+        if not retrieved:
             return {
-                "answer": (
-                    "I could not find relevant information "
-                    "in the indexed document."
-                ),
+                "answer": "I could not find sufficiently relevant information in the selected document.",
                 "sources": [],
+                "context_items": [],
+                "retrieval_latency_ms": retrieval_latency_ms,
+                "error": None,
             }
-        context = self.build_context(results)
-        response = self.model.invoke(
-            [
-                SystemMessage(
-                    content=(
-                        "Answer only from the supplied document "
-                        "context. Cite sources as [Source 1], "
-                        "[Source 2], and so on."
-                    )
-                ),
-                HumanMessage(
-                    content=f"""
-                        Document context:{context}
-                        Question:{question}
-                        """.strip()
-                ),
-            ]
+
+        context_blocks: list[str] = []
+        sources: list[dict[str, Any]] = []
+        for index, item in enumerate(retrieved, start=1):
+            label = f"Source {index}"
+            page_start = item.get("page_start") or item.get("page_number")
+            page_end = item.get("page_end") or page_start
+            context_blocks.append(
+                f"[{label}: {item.get('filename') or 'document'}, pages {page_start}-{page_end}]\n"
+                f"{item.get('text') or ''}"
+            )
+            sources.append(
+                {
+                    "source_id": index,
+                    "chunk_id": item.get("chunk_id"),
+                    "document_id": item.get("document_id"),
+                    "filename": item.get("filename"),
+                    "page_start": page_start,
+                    "page_end": page_end,
+                    "score": item.get("score"),
+                }
+            )
+
+        system_prompt = (
+            "You are OmniBrain's document analysis agent. Answer only from the supplied document context. "
+            "Do not invent values or use outside knowledge for document-specific facts. If the answer is not supported, "
+            "say that it is not available in the retrieved context. Cite supporting passages using [Source 1], [Source 2], etc."
         )
-        answer = (response.content
-            if isinstance(response.content, str)
-            else str(response.content))
+        user_prompt = (
+            "DOCUMENT CONTEXT:\n\n"
+            + "\n\n".join(context_blocks)
+            + f"\n\nQUESTION:\n{question}"
+        )
+
+        response = await self.llm.ainvoke(
+            [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+        )
+        answer = str(response.content)
 
         return {
             "answer": answer,
-            "sources": [
-                {
-                    "chunk_id": item.get("chunk_id"),
-                    "filename": item.get("filename"),
-                    "page_start": item.get("page_start"),
-                    "page_end": item.get("page_end"),
-                    "score": item.get("score"),
-                }
-                for item in results
-            ],
+            "sources": sources,
+            "context_items": retrieved,
+            "retrieval_latency_ms": retrieval_latency_ms,
+            "error": None,
         }
