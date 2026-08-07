@@ -14,6 +14,3 @@ langchain_community
 langgraph
 setuptools
 pypdf
-sentence_transformers
-sqlalchemy 
-asyncpg

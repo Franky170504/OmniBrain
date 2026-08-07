@@ -241,6 +241,15 @@ CREATE TABLE IF NOT EXISTS knowledge.documents (
     original_filename VARCHAR(255)
         NOT NULL,
 
+    mime_type VARCHAR(100)
+        NOT NULL,
+
+    file_extension VARCHAR(20)
+        NOT NULL,
+
+    document_type VARCHAR(20)
+        NOT NULL,
+
     file_size_bytes BIGINT
         NOT NULL,
 
@@ -1015,6 +1024,9 @@ CREATE TABLE IF NOT EXISTS knowledge.images (
     image_format VARCHAR(20)
         NOT NULL,
 
+    mime_type VARCHAR(100)
+        NOT NULL,
+
     file_size_bytes BIGINT
         NOT NULL,
 
@@ -1283,6 +1295,8 @@ COMMENT ON COLUMN knowledge.images.original_filename IS
 COMMENT ON COLUMN knowledge.images.image_format IS
 'Logical image format (PNG, JPEG, WEBP, etc.).';
 
+COMMENT ON COLUMN knowledge.images.mime_type IS
+'MIME type of the image.';
 
 COMMENT ON COLUMN knowledge.images.file_size_bytes IS
 'Image size in bytes.';

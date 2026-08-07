@@ -2,7 +2,7 @@ import os
 from pathlib import Path,WindowsPath
 from typing import ClassVar
 from pydantic import Field,field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 from config.settings import *
 from config.path_config import *
@@ -23,8 +23,7 @@ class AppSettings(BaseSettings):
 
     EMBEDDING_MODEL: str = settings.embedding_model
     EMBEDDING_BATCH_SIZE: int = settings.embedding_batch_size
-    EMBEDDING_DIMENSION: int = settings.embedding_dimension
-    
+
     GROQ_API_KEY: str = (settings.groq_api_key)
     GROQ_MODEL: str = settings.groq_model
     GROQ_SUPERVISIOR_MODEL :str = settings.groq_supervisior_model
@@ -44,38 +43,21 @@ class AppSettings(BaseSettings):
         ]
     )
 
-    INPUT_DIR: Path = Path('data/input')
-    OUTPUT_DIR: Path = Path('data/output')
+    INPUT_DIR: ClassVar[WindowsPath] = WindowsPath('data/input')
+    OUTPUT_DIR: ClassVar[WindowsPath] = WindowsPath('data/output')
 
-    DATABASE_URL: str  = settings.database_url
-    DATABASE_POOL_SIZE: int = settings.database_pool_size
-    DATABASE_MAX_OVERFLOW: int = settings.database_max_overflow
-
-    DEFAULT_COLLECTION_ID: str = settings.default_collection_id
-    LOCAL_USER_EMAIL: str = settings.local_user_email
-
-    STORE_RETRIEVED_TEXT: bool = settings.store_retrived_text
-
-    model_config = SettingsConfigDict(
-        env_file=WindowsPath('.env'),
-        env_file_encoding="utf-8",
-        case_sensitive=True,
-        extra="ignore",
-    )
-
-    @field_validator("DATABASE_URL")
     @classmethod
-    def validate_database_url(cls, value: str) -> str:
-        if not value.startswith("postgresql+asyncpg://"):
-            raise ValueError("DATABASE_URL must use postgresql+asyncpg://")
-        return value
-
-    @field_validator("INPUT_DIR", "OUTPUT_DIR")
+    def resolve_path(cls, value: object) -> Path:
+        path = Path(str(value))
+        if not path.is_absolute():
+            path = BASE_DIR / path
+        return path.resolve()
+    
+    @field_validator("QDRANT_API_KEY", "GROQ_API_KEY","LANGSMITH_API_KEY","LANGSMITH_PROJECT",mode="before")
     @classmethod
-    def ensure_directory(cls, value: Path) -> Path:
-        value.mkdir(parents=True, exist_ok=True)
+    def empty_string_to_none(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
         return value
-
 
 app_settings = AppSettings()
-

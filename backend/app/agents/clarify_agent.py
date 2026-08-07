@@ -2,37 +2,25 @@ from __future__ import annotations
 
 from app.agents.state import AgentState
 
-
-class ClarifyAgent:
-    async def __call__(self, state: AgentState) -> dict:
-        question = state.get("question", "")
+class ClarifyAgentNode:
+    def __call__(self, state: AgentState) -> dict:
+        question = state.get("question", "").strip()
         document_id = state.get("document_id")
 
-        if not document_id and any(
-            term in question.lower()
-            for term in (
-                "company",
-                "document",
-                "report",
-                "uploaded",
-                "book",
-                "financial statement",
-                "annual report",
-            )
-        ):
+        if not question:
+            answer = "Please enter a question."
+        elif not document_id:
             answer = (
-                "Please upload or select the relevant document before I analyze that document-specific request."
+                "Your question appears to refer to a document, "
+                "but no document is selected."
             )
         else:
             answer = (
-                "Please clarify the missing analysis details—for example the company or document, "
-                "financial metric, and comparison period you want me to use."
+                "Please provide more information so I can route "
+                "your question correctly."
             )
-
         return {
             "answer": answer,
             "sources": [],
-            "context_items": [],
-            "retrieval_latency_ms": None,
             "error": None,
         }

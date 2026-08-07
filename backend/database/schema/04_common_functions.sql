@@ -165,10 +165,7 @@ $$;
 -- AUTH SCHEMA TRIGGERS
 -- Automatically update updated_at timestamp
 -- ============================================================================
-DROP TRIGGER IF EXISTS trg_users_set_updated_at
-ON auth.users;
 
-DROP FUNCTION IF EXISTS auth.set_updated_at();
 DROP TRIGGER IF EXISTS trg_users_bu_set_updated_at
 ON auth.users;
 
