@@ -1,378 +1,334 @@
-"""
-OmniBrain - AI Research Assistant
-
-Streamlit frontend for the OmniBrain application.
-
-Features:
-- Document upload
-- Chat interface
-- Quick actions
-- Document information panel
-- Application settings
-
-Note:
-This is currently a frontend prototype.
-The AI response function will be replaced with the actual FastAPI + LangChain backend.
-"""
+from __future__ import annotations
 
 import os
-import requests
+from typing import Any
+
 import streamlit as st
-from datetime import datetime
 
-# Configurable backend URL
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
-
-# Optional libs for reading real file info (agar installed nahi hai to app phir bhi chalega)
-try:
-    from pypdf import PdfReader
-except ImportError:
-    PdfReader = None
+from frontend.api_client import OmniBrainAPIClient
 
 
-# ----------------------------------------------------------------------
-# 1. PAGE CONFIG  
-# ----------------------------------------------------------------------
-st.set_page_config(
-    page_title="OmniBrain",
-    page_icon="OB",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+DEFAULT_BACKEND_URL = os.getenv("OMNIBRAIN_API_URL","http://127.0.0.1:8000")
 
+st.set_page_config(page_title="OmniBrain",layout="wide")
 
-# ----------------------------------------------------------------------
-# 2. CUSTOM CSS 
-# ----------------------------------------------------------------------
-st.markdown(
-    """
-    <style>
-        /* Overall background */
-        .stApp {
-            background-color: #0F172A;
-            color: #FFFFFF;
-        }
-
-        /* Sidebar background */
-        section[data-testid="stSidebar"] {
-            background-color: #1E293B;
-        }
-
-        /* Card-like containers */
-        .ob-card {
-            background-color: #1E293B;
-            padding: 1.4rem 1.6rem;
-            border-radius:18px;
-            margin-bottom: 0.8rem;
-            border: 1px solid #334155;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.18);
-        }
-
-        /* Top navbar */
-        .ob-navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    background: linear-gradient(135deg, #1E293B, #243B55);
-    border-radius: 18px;
-    margin-bottom: 1.5rem;
-    border: 1px solid #334155;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-}
-
-        .ob-navbar h2 {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-
-.workspace-badge {
-    background: #3B82F6;
-    color: white;
-    padding: 0.45rem 1rem;
-    border-radius: 999px;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-        /* Buttons -> blue accent */
-        div.stButton > button {
-            background-color: #3B82F6;
-            color: white;
-            border: none;
-            border-radius:10px;;
-            padding: 0.4rem 1rem;
-        }
-        div.stButton > button:hover {
-            background-color: #2563EB;
-            color: white;
-        }
-
-        /* Footer */
-        .ob-footer {
-            text-align: center;
-            color: #94A3B8;
-            font-size: 0.8rem;
-            margin-top: 2rem;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-
-# ----------------------------------------------------------------------
-# 3. SESSION STATE  --  # Store uploaded files and chat history across reruns.
-# ----------------------------------------------------------------------
-if "uploaded_files_info" not in st.session_state:
-    st.session_state.uploaded_files_info = []   # list of dicts: name, pages, chunks
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []   # list of dicts: role, content
-
-if "pending_prompt" not in st.session_state:
-    st.session_state.pending_prompt = None
-
-if "document_id" not in st.session_state:
-    st.session_state.document_id = None
-
-
-# ----------------------------------------------------------------------
-# 4. BACKEND CHAT RESPONSE FUNCTION
-# ----------------------------------------------------------------------
-def get_ai_response(user_query: str) -> str:
-    """Calls the backend chat endpoint with actual request/response schema."""
-    if not st.session_state.uploaded_files_info:
-        return "Pehle koi document upload karo, fir main uske base par jawaab dunga."
-    
-    # Use the document_id of the latest uploaded file
-    latest = st.session_state.uploaded_files_info[-1]
-    document_id = latest.get("document_id") or st.session_state.get("document_id")
-    
-    if not document_id:
-        return "Pehle koi document upload karo, fir main uske base par jawaab dunga."
-    
-    payload = {
-        "document_id": document_id,
-        "question": user_query
-    }
-    
-    try:
-        response = requests.post(f"{BACKEND_URL}/chat", json=payload)
-        if response.status_code == 200:
-            res_data = response.json()
-            answer = res_data.get("answer", "")
-            sources = res_data.get("sources", [])
-            
-            # Format display with sources if present
-            if sources:
-                sources_str = "\n\n**Sources:**\n" + "\n".join(f"- {s}" for s in sources)
-                return f"{answer}{sources_str}"
-            return answer
-        else:
-            try:
-                err_msg = response.json().get("detail", response.text)
-            except Exception:
-                err_msg = response.text
-            st.error(f"API Error: {err_msg}")
-            return f"Error: {err_msg}"
-    except Exception as e:
-        st.error(f"Failed to connect to backend: {str(e)}")
-        return f"Connection Error: {str(e)}"
-
-
-def process_uploaded_file(file):
-    """Extract basic metadata from uploaded documents."""
-    pages = None
-    if file.name.lower().endswith(".pdf") and PdfReader is not None:
-        try:
-            reader = PdfReader(file)
-            pages = len(reader.pages)
-        except Exception:
-            pages = None
-    if pages is None:
-        pages = 1  # fallback dummy value
-
-    chunks = pages * 4  # dummy formula, just for UI display
-
-    return {
-        "name": file.name,
-        "pages": pages,
-        "chunks": chunks,
-        "uploaded_at": datetime.now().strftime("%H:%M:%S"),
+def initialize_state() -> None:
+    defaults: dict[str, Any] = {
+        "user_id": "local-user",
+        "document_id": None,
+        "document_name": None,
+        "upload_result": None,
+        "messages": [],
+        "backend_url": DEFAULT_BACKEND_URL,
     }
 
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
-# ----------------------------------------------------------------------
-# 5. TOP NAVBAR
-# ----------------------------------------------------------------------
-st.markdown(
-    """
-   <div class="ob-navbar">
-    <h2>OmniBrain</h2>
-    <div class="workspace-badge">
-        Workspace
-    </div>
-</div>
-    """,
-    unsafe_allow_html=True,
+
+def render_source(source: dict[str, Any], index: int) -> None:
+    filename = source.get("filename") or "Unknown document"
+    page_start = source.get("page_start")
+    page_end = source.get("page_end")
+    score = source.get("score")
+
+    if page_start is None:
+        page_label = "Page unavailable"
+    elif page_end is None or page_start == page_end:
+        page_label = f"Page {page_start}"
+    else:
+        page_label = f"Pages {page_start}–{page_end}"
+
+    with st.expander(
+        f"Source {index}: {filename} — {page_label}"
+    ):
+        st.write(
+            {
+                "document_id": source.get("document_id"),
+                "chunk_id": source.get("chunk_id"),
+                "point_id": source.get("point_id"),
+                "filename": filename,
+                "page_start": page_start,
+                "page_end": page_end,
+                "score": score,
+            }
+        )
+
+
+initialize_state()
+
+st.title("OmniBrain")
+st.caption(
+    "Upload PDFs, index them in Qdrant, and ask questions "
+    "through the LangGraph supervisor."
 )
 
-
-# ----------------------------------------------------------------------
-# 6. SIDEBAR  --  Upload + File list + Settings
-# ----------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("###  Upload Documents")
-    uploaded = st.file_uploader(
-        "Drag & drop or browse your PDF, DOCX or TXT files",
-        type=["pdf", "docx", "txt"],
-        accept_multiple_files=True,
+    st.header("Connection")
+    backend_url = st.text_input("FastAPI URL",value=st.session_state.backend_url).strip()
+    st.session_state.backend_url = backend_url
+    user_id = st.text_input("User ID",value=st.session_state.user_id).strip()
+    st.session_state.user_id = user_id or "local-user"
+    client = OmniBrainAPIClient(base_url=st.session_state.backend_url)
+    if st.button("Check backend health", use_container_width=True):
+        try:
+            health = client.health()
+            st.success("Backend is reachable.")
+            st.json(health)
+        except Exception as exc:
+            st.error(str(exc))
+
+    st.divider()
+    st.subheader("Current document")
+    if st.session_state.document_id:
+        st.success(st.session_state.document_name or "Document selected")
+        st.code(st.session_state.document_id)
+        if st.button("Clear selected document",use_container_width=True,):
+            st.session_state.document_id = None
+            st.session_state.document_name = None
+            st.session_state.upload_result = None
+            st.rerun()
+    else:
+        st.info("No document selected.")
+
+upload_tab, chat_tab, status_tab = st.tabs(
+    [
+        "Upload Document",
+        "Chat",
+        "Status",
+    ]
+)
+
+with upload_tab:
+    st.subheader("Upload and index a PDF")
+
+    uploaded_file = st.file_uploader(
+        "Choose a PDF document",
+        type=["pdf"],
+        accept_multiple_files=False,
     )
 
-    if uploaded:
-        for file in uploaded:
-            already = any(f["name"] == file.name for f in st.session_state.uploaded_files_info)
-            if not already:
-                # Call backend upload endpoint using actual request format
-                files = {"file": (file.name, file.getvalue(), file.type or "application/pdf")}
-                try:
-                    response = requests.post(f"{BACKEND_URL}/upload", files=files)
-                    if response.status_code == 201:
-                        res_data = response.json()
-                        document_id = res_data.get("document_id")
-                        st.session_state.document_id = document_id
-                        
-                        info = process_uploaded_file(file)
-                        info["document_id"] = document_id
-                        st.session_state.uploaded_files_info.append(info)
-                        st.success(f"{file.name} uploaded and indexed. ID: {document_id}")
-                    else:
-                        try:
-                            err_msg = response.json().get("detail", response.text)
-                        except Exception:
-                            err_msg = response.text
-                        st.error(f"Failed to upload {file.name}: {err_msg}")
-                except Exception as e:
-                    st.error(f"Connection error to backend for {file.name}: {str(e)}")
-
-    st.markdown("---")
-    st.markdown("### Uploaded Files")
-    if st.session_state.uploaded_files_info:
-        for f in st.session_state.uploaded_files_info:
-            st.markdown(f"• {f['name']}")
-    else:
-        st.info("No documents uploaded yet. Upload your first file to get started.")
-
-    st.markdown("---")
-    st.markdown("### Settings")
-    language = st.selectbox("Language", ["English", "Hindi", "Hinglish"])
-    model = st.selectbox("Model", ["GPT-4o", "Claude", "Gemini"])
-    theme = st.selectbox("Theme", ["Dark", "Light"])
-
-
-# ----------------------------------------------------------------------
-# 7. MAIN AREA  -- Welcome screen OR Chat + Right panel
-# ----------------------------------------------------------------------
-main_col, right_col = st.columns([3, 1])
-
-with main_col:
-    if not st.session_state.uploaded_files_info:
-        # ---- Welcome screen ----
-        st.markdown(
-            """
-            <div class="ob-card" style="text-align:center; padding:3rem;">
-                <h1> OmniBrain</h1>
-                <p style="color:#CBD5E1; font-size:1.15rem;">
-AI-powered Research Workspace
-</p>
-
-<p style="color:#94A3B8; line-height:1.8;">
-Upload your research documents and interact with them using AI-powered insights, summaries and contextual conversations.
-</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    else:
-        # ---- Indexed file summary card (latest file) ----
-        latest = st.session_state.uploaded_files_info[-1]
-        st.markdown(
-            f"""
-            <div class="ob-card">
-                 <b>{latest['name']}</b><br>
-                 Status: Indexed Successfully<br>
-                Pages: {latest['pages']} &nbsp;|&nbsp; Chunks: {latest['chunks']}
-            </div>
-            """,
-            unsafe_allow_html=True,
+    if uploaded_file is not None:
+        st.write(
+            {
+                "filename": uploaded_file.name,
+                "type": uploaded_file.type,
+                "size_bytes": uploaded_file.size,
+            }
         )
 
-        # ---- Quick action buttons ----
-        st.markdown("#### Quick Actions")
-        qa1, qa2, qa3, qa4 = st.columns(4)
-        if qa1.button(" Summarize"):
-            st.session_state.pending_prompt = "Summarize this document."
-        if qa2.button(" Translate"):
-            st.session_state.pending_prompt = "Translate this document."
-        if qa3.button(" Notes"):
-            st.session_state.pending_prompt = "Make notes from this document."
-        if qa4.button(" Key Points"):
-            st.session_state.pending_prompt = "Give key points of this document."
+    upload_clicked = st.button("Upload and index",type="primary",disabled=uploaded_file is None)
 
-        st.markdown("---")
+    if upload_clicked and uploaded_file is not None:
+        if not st.session_state.user_id:
+            st.error("User ID is required.")
+        else:
+            try:
+                with st.spinner(
+                    "Uploading, parsing, and indexing document..."
+                ):
+                    result = client.upload_document(
+                        file_name=uploaded_file.name,
+                        file_bytes=uploaded_file.getvalue(),
+                        content_type=(
+                            uploaded_file.type
+                            or "application/pdf"
+                        ),
+                        user_id=st.session_state.user_id,
+                    )
 
-        # ---- Chat history ----
-        for msg in st.session_state.messages:
-            with st.chat_message(msg["role"]):
-                st.write(msg["content"])
+                st.session_state.upload_result = result
+                st.session_state.document_id = result.get(
+                    "document_id"
+                )
+                st.session_state.document_name = result.get(
+                    "filename",
+                    uploaded_file.name,
+                )
 
-        # ---- Handle quick-action pending prompt ----
-        if st.session_state.pending_prompt:
-            prompt = st.session_state.pending_prompt
-            st.session_state.pending_prompt = None
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            reply = get_ai_response(prompt)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
+                st.success(
+                    result.get(
+                        "message",
+                        "Document uploaded and indexed.",
+                    )
+                )
+
+            except Exception as exc:
+                st.error(str(exc))
+
+    if st.session_state.upload_result:
+        result = st.session_state.upload_result
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        col1.metric(
+            "Pages",
+            result.get("page_count", 0),
+        )
+
+        col2.metric(
+            "Chunks",
+            result.get("chunk_count", 0),
+        )
+
+        col3.metric(
+            "Images",
+            result.get("image_count", 0),
+        )
+
+        col4.metric(
+            "Indexed points",
+            result.get("indexed_points", 0),
+        )
+
+        st.write("Document ID")
+
+        st.code(
+            result.get("document_id", "Unavailable")
+        )
+
+        with st.expander("Full upload response"):
+            st.json(result)
+
+with chat_tab:
+    st.subheader("Chat with OmniBrain")
+
+    if st.session_state.document_id:
+        st.info(
+            f"Selected document: "
+            f"{st.session_state.document_name}"
+        )
+    else:
+        st.warning(
+            "No document is selected. General questions can still "
+            "be routed to the general agent."
+        )
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+            route = message.get("route")
+            route_reason = message.get("route_reason")
+            sources = message.get("sources", [])
+
+            if route:
+                st.caption(f"Agent route: `{route}`")
+
+            if route_reason:
+                st.caption(route_reason)
+
+            if sources:
+                for index, source in enumerate(sources,start=1):
+                    render_source(source, index)
+
+    question = st.chat_input("Ask a question about your document...")
+
+    if question:
+        st.session_state.messages.append(
+            {
+                "role": "user",
+                "content": question,
+            }
+        )
+
+        with st.chat_message("user"):
+            st.markdown(question)
+
+        try:
+            with st.chat_message("assistant"):
+                with st.spinner(
+                    "Supervisor is selecting an agent..."
+                ):
+                    result = client.chat(
+                        question=question,
+                        user_id=st.session_state.user_id,
+                        document_id=(
+                            st.session_state.document_id
+                        ),
+                    )
+
+                answer = result.get(
+                    "answer",
+                    "No answer was returned.",
+                )
+
+                sources = result.get("sources", [])
+                route = result.get("route")
+                route_reason = result.get("route_reason")
+
+                st.markdown(answer)
+
+                if route:
+                    st.caption(f"Agent route: `{route}`")
+
+                if route_reason:
+                    st.caption(route_reason)
+
+                if sources:
+                    st.markdown("#### Sources")
+
+                    for index, source in enumerate(
+                        sources,
+                        start=1,
+                    ):
+                        render_source(source, index)
+
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": answer,
+                    "sources": sources,
+                    "route": route,
+                    "route_reason": route_reason,
+                }
+            )
+
+        except Exception as exc:
+            error_message = str(exc)
+
+            with st.chat_message("assistant"):
+                st.error(error_message)
+
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": f"Error: {error_message}",
+                    "sources": [],
+                    "route": None,
+                    "route_reason": None,
+                }
+            )
+
+    if st.session_state.messages:
+        if st.button("Clear chat history"):
+            st.session_state.messages = []
             st.rerun()
 
-        # ---- Chat input box ----
-        user_input = st.chat_input("Ask anything...")
-        if user_input:
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            reply = get_ai_response(user_input)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            st.rerun()
+with status_tab:
+    st.subheader("Frontend session")
 
-with right_col:
-    st.markdown("#### Document Info")
-    if st.session_state.uploaded_files_info:
-        latest = st.session_state.uploaded_files_info[-1]
-        st.markdown(
-            f"""
-            <div class="ob-card">
-                <b>File Name:</b> {latest['name']}<br>
-                <b>Pages:</b> {latest['pages']}<br>
-                <b>Language:</b> {language}<br>
-                <b>Keywords:</b> Available after indexing<br>
-                <b>Last Updated:</b> {latest['uploaded_at']}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    else:
-        st.caption("Upload a document to view its metadata.")
+    st.write(
+        {
+            "backend_url": st.session_state.backend_url,
+            "user_id": st.session_state.user_id,
+            "document_id": st.session_state.document_id,
+            "document_name": st.session_state.document_name,
+            "message_count": len(
+                st.session_state.messages
+            ),
+        }
+    )
 
+    if st.button("Refresh backend status"):
+        try:
+            health = client.health()
+            st.success("Backend is healthy.")
+            st.json(health)
+        except Exception as exc:
+            st.error(str(exc))
 
-# ----------------------------------------------------------------------
-# 8. FOOTER
-# ----------------------------------------------------------------------
-st.markdown(
-    """
-    <div class="ob-footer">
-         Built with Streamlit, FastAPI, LangChain & LLM
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+    if st.session_state.upload_result:
+        with st.expander("Last upload response"):
+            st.json(st.session_state.upload_result)

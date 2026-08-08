@@ -218,4 +218,28 @@ __marimo__/
 .streamlit/secrets.toml
 
 input/
+output/
+qdrant_storage/
 .vscode/
+
+# ============================================================================
+# OmniBrain Database
+# ============================================================================
+
+# PostgreSQL backup and dump files
+*.backup
+*.dump
+
+# Temporary SQL editor files
+*.sql~
+
+# Local PostgreSQL data directories
+postgres-data/
+pgdata/
+
+# Temporary database files
+*.tmp
+*.temp
+
+# macOS
+.DS_Store

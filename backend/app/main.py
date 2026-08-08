@@ -1,100 +1,71 @@
-import logging
-from fastapi import FastAPI, Request, status
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.core.config import settings
-from app.routes import health, upload, chat
+from app.agents.graph import OmniBrainGraph
+from app.core.app_config import app_settings
+from app.core.langsmith_config import configure_langsmith
+from app.routes import chat, health, upload
+from app.services.chat_service import ChatService
+from app.services.document_service import DocumentService
+from app.services.qdrant_service import QdrantService
+from app.services.rag_service import RagService
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger("omnibrain")
+from pathlib import Path
+from dotenv import load_dotenv
 
-tags_metadata = [
-    {
-        "name": "Health Check",
-        "description": "System health and status monitoring endpoints.",
-    },
-    {
-        "name": "Document Management",
-        "description": "Asynchronous document upload and validation endpoints.",
-    },
-    {
-        "name": "Document Chat",
-        "description": "Interactive document querying and mock response endpoints.",
-    },
+load_dotenv(Path(".env"))
+
+cors_origins = app_settings.CORS_ORIGINS or [
+    "http://127.0.0.1:8501",
+    "http://127.0.0.1:8000",
 ]
 
-# Initialize FastAPI application
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    configure_langsmith()
+
+    qdrant_service = QdrantService()
+    qdrant_service.connect()
+    qdrant_service.ensure_collection()
+    document_service = DocumentService(qdrant_service=qdrant_service)
+    rag_service = RagService(qdrant_service=qdrant_service)
+    agent_graph = OmniBrainGraph(rag_service=rag_service)
+    chat_service = ChatService(agent_graph=agent_graph)
+
+    app.state.qdrant_service = qdrant_service
+    app.state.document_service = document_service
+    app.state.rag_service = rag_service
+    app.state.agent_graph = agent_graph
+    app.state.chat_service = chat_service
+    
+    yield
+
+    qdrant_service.close()
+
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    version=settings.VERSION,
-    description=settings.DESCRIPTION,
-    openapi_tags=tags_metadata,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    title="OmniBrain API",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-# Configure CORS Middleware
+@app.get("/", tags=["Root"])
+def root() -> dict:
+    return {
+        "status": "ok",
+        "message": "OmniBrain API is running",
+    }
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# Exception Handlers
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    """Handle custom and standard HTTP exceptions cleanly."""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
-    )
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Format validation errors nicely for client consumption."""
-    error_messages = []
-    for error in exc.errors():
-        loc = " -> ".join(str(item) for item in error.get("loc", []))
-        msg = error.get("msg", "Invalid input")
-        error_messages.append(f"{loc}: {msg}")
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": f"Validation Error: {'; '.join(error_messages)}"}
-    )
-
-
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    """Catch-all exception handler for unexpected server errors."""
-    logger.error(f"Unhandled Exception: {str(exc)}", exc_info=True)
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "An internal server error occurred."}
-    )
-
-
-# Include Routers
 app.include_router(health.router)
 app.include_router(upload.router)
 app.include_router(chat.router)
-
-
-@app.get("/", include_in_schema=False)
-async def root_redirect():
-    """Root endpoint welcoming users or pointing to documentation."""
-    return {
-        "message": "Welcome to OmniBrain Backend API",
-        "docs": "/docs",
-        "health": "/health"
-    }

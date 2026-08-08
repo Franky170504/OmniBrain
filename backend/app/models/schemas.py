@@ -1,37 +1,100 @@
-from datetime import datetime
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from __future__ import annotations
 
+from typing import Any, Literal
+from pydantic import BaseModel, ConfigDict, Field
+
+AgentRoute = Literal[
+    "document_agent",
+    "general_agent",
+    "clarify_agent",
+]
+
+class QdrantHealthResponse(BaseModel):
+    status: Literal["healthy","unhealthy"]
+    qdrant_initialized: bool
+    document_service_initialized: bool
+    rag_service_initialized: bool
+    agent_graph_initialized: bool
+    chat_service_initialized: bool
+    langsmith_tracing_enabled: bool = False
+    langsmith_project: str | None = None
 
 class HealthResponse(BaseModel):
-    """Response model for health check endpoint."""
-    status: str = Field(default="ok", example="ok", description="Current status of the backend API")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="UTC timestamp of the status check")
-    version: str = Field(default="1.0.0", description="API version")
-
+    status: Literal[
+        "healthy",
+        "degraded",
+        "unhealthy",
+    ]
+    qdrant: QdrantHealthResponse
 
 class UploadResponse(BaseModel):
-    """Response model for document upload endpoint."""
-    document_id: str = Field(..., example="550e8400-e29b-41d4-a716-446655440000", description="Generated unique ID for the uploaded document")
-    filename: str = Field(..., example="sample_report.pdf", description="Original filename of the uploaded PDF")
-    file_size: int = Field(..., example=102450, description="File size in bytes")
-    message: str = Field(..., example="Document uploaded successfully.", description="Status message")
-
+    message: str
+    document_id: str
+    filename: str
+    page_count: int = Field(ge=0, description="Number of pages parsed from the PDF.")
+    chunk_count: int = Field(ge=0, description="Number of text chunks created.")
+    image_count: int = Field(ge=0, description="Number of images extracted.")
+    indexed_points: int = Field(ge=0, description="Number of vector points written to Qdrant.")
 
 class ChatRequest(BaseModel):
-    """Request model for interactive document querying."""
-    document_id: str = Field(..., example="550e8400-e29b-41d4-a716-446655440000", description="ID of the document to query")
-    question: str = Field(..., min_length=1, example="What are the key takeaways from this document?", description="Question to ask regarding the document")
+    question: str = Field(
+        min_length=1,
+        max_length=5_000,
+        description="The user's question.",
+        examples=["Who are the authors of this book?"],
+    )
 
+    user_id: str = Field(
+        default="local-user",
+        min_length=1,
+        max_length=200,
+        description=("Identifier used to isolate one user's indexed documents."),
+    )
+
+    document_id: str | None = Field(
+        default=None,
+        description=(
+            "The uploaded document identifier. It may be omitted "
+            "for general questions."
+        ),
+    )
+
+class SourceReference(BaseModel):
+    point_id: str | None = None
+    chunk_id: str | None = None
+    document_id: str | None = None
+    filename: str | None = None
+    page_start: int | None = Field(default=None,ge=0)
+    page_end: int | None = Field(default=None,ge=0)
+    score: float | None = None
+    model_config = ConfigDict(extra="ignore")
 
 class ChatResponse(BaseModel):
-    """Response model for document query endpoint (mock response)."""
-    document_id: str = Field(..., description="ID of the document queried")
-    question: str = Field(..., description="The original question asked")
-    answer: str = Field(..., description="Generated answer or mock response")
-    sources: List[str] = Field(default_factory=list, description="List of source references or citations")
-
+    answer: str
+    sources: list[SourceReference] = Field(default_factory=list)
+    route: AgentRoute | None = None
+    route_reason: str | None = None
+    error: str | None = None
 
 class ErrorResponse(BaseModel):
-    """Standard error response model."""
-    detail: str = Field(..., description="Detailed description of the error encountered")
+    detail: str
+
+class QdrantHealthResponse(BaseModel):
+    status: Literal[
+        "healthy",
+        "unhealthy",
+    ]
+
+    collection_name: str
+    collection_exists: bool
+    points_count: int | None = None
+    error: str | None = None
+
+class DocumentMetadata(BaseModel):
+    document_id: str
+    user_id: str
+    filename: str
+    page_count: int = Field(default=0, ge=0)
+    chunk_count: int = Field(default=0, ge=0)
+    image_count: int = Field(default=0, ge=0)
+    metadata: dict[str, Any] = Field(default_factory=dict)

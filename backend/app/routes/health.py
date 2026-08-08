@@ -1,19 +1,23 @@
-from fastapi import APIRouter, status
-from app.models.schemas import HealthResponse
+from __future__ import annotations
 
-router = APIRouter(tags=["Health Check"])
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.dependencies import get_qdrant_service
+from app.services.qdrant_service import QdrantService
 
-@router.get(
-    "/health",
-    response_model=HealthResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Backend Health Check",
-    description="Check operational status and API responsiveness.",
-    responses={
-        200: {"description": "API is operational and healthy."}
-    }
-)
-async def health_check() -> HealthResponse:
-    """Return backend operational status."""
-    return HealthResponse()
+router = APIRouter(prefix="/health", tags=["Health"])
+
+@router.get("")
+def health_check(qdrant_service: QdrantService = Depends(get_qdrant_service)) -> dict:
+    try:
+        qdrant_status = qdrant_service.health()
+        return {
+            "status": "healthy",
+            "qdrant": qdrant_status,
+        }
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Health check failed: {type(exc).__name__}: {exc}",
+        ) from exc
