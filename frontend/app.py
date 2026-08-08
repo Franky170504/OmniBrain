@@ -43,18 +43,11 @@ def render_source(source: dict[str, Any], index: int) -> None:
     with st.expander(
         f"Source {index}: {filename} — {page_label}"
     ):
-        st.write(
-            {
-                "document_id": source.get("document_id"),
-                "chunk_id": source.get("chunk_id"),
-                "point_id": source.get("point_id"),
-                "filename": filename,
-                "page_start": page_start,
-                "page_end": page_end,
-                "score": score,
-            }
-        )
+        st.markdown(f"**Document:** {filename}")
+        st.markdown(f"**Pages:** {page_label}")
 
+        if score is not None:
+            st.caption(f"Retrieval relevance score: {score:.3f}")
 
 initialize_state()
 
@@ -75,10 +68,27 @@ with st.sidebar:
         try:
             health = client.health()
             st.success("Backend is reachable.")
-            st.json(health)
+
+            qdrant = health.get("qdrant", {})
+
+            st.caption("Qdrant")
+            st.write(
+                qdrant.get("status", "unknown").title()
+            )
+
+            st.caption("Collection")
+            st.code(
+                qdrant.get("collection_name", "unknown")
+            )
+
+            st.caption("Indexed points")
+            st.metric(
+                "Points",
+                qdrant.get("points_count", 0),
+            )
+
         except Exception as exc:
             st.error(str(exc))
-
     st.divider()
     st.subheader("Current document")
     if st.session_state.document_id:
@@ -110,13 +120,13 @@ with upload_tab:
     )
 
     if uploaded_file is not None:
-        st.write(
-            {
-                "filename": uploaded_file.name,
-                "type": uploaded_file.type,
-                "size_bytes": uploaded_file.size,
-            }
-        )
+        file_size_mb = uploaded_file.size / (1024 * 1024)
+
+        st.markdown(f"**📄 {uploaded_file.name}**")
+        st.caption(
+            f"{uploaded_file.type or 'PDF document'} · "
+            f"{file_size_mb:.2f} MB"
+    )
 
     upload_clicked = st.button("Upload and index",type="primary",disabled=uploaded_file is None)
 
@@ -309,26 +319,100 @@ with chat_tab:
 with status_tab:
     st.subheader("Frontend session")
 
-    st.write(
-        {
-            "backend_url": st.session_state.backend_url,
-            "user_id": st.session_state.user_id,
-            "document_id": st.session_state.document_id,
-            "document_name": st.session_state.document_name,
-            "message_count": len(
-                st.session_state.messages
-            ),
-        }
-    )
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.caption("Backend URL")
+        st.code(st.session_state.backend_url)
+
+        st.caption("User ID")
+        st.code(st.session_state.user_id or "Not set")
+
+    with col2:
+        st.caption("Current document")
+        st.write(
+            st.session_state.document_name
+            or "No document selected"
+        )
+
+        st.caption("Messages")
+        st.metric(
+            "Chat messages",
+            len(st.session_state.messages),
+        )
+
+    st.divider()
+
+    st.subheader("Backend health")
 
     if st.button("Refresh backend status"):
         try:
             health = client.health()
-            st.success("Backend is healthy.")
-            st.json(health)
+
+            if health.get("status") == "healthy":
+                st.success("Backend is healthy.")
+            else:
+                st.warning("Backend responded, but may need attention.")
+
+            qdrant = health.get("qdrant", {})
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    "Qdrant",
+                    qdrant.get("status", "unknown").title(),
+                )
+
+            with col2:
+                st.metric(
+                    "Collection",
+                    qdrant.get("collection_name", "unknown"),
+                )
+
+            with col3:
+                st.metric(
+                    "Indexed points",
+                    qdrant.get("points_count", 0),
+                )
+
+            if qdrant.get("collection_exists"):
+                st.success("Qdrant collection is available.")
+            else:
+                st.warning("Qdrant collection was not found.")
+
         except Exception as exc:
             st.error(str(exc))
 
     if st.session_state.upload_result:
         with st.expander("Last upload response"):
-            st.json(st.session_state.upload_result)
+            result = st.session_state.upload_result
+
+            st.success(
+                result.get(
+                    "message",
+                    "Document uploaded and indexed.",
+                )
+            )
+
+            col1, col2, col3, col4 = st.columns(4)
+
+            col1.metric(
+                "Pages",
+                result.get("page_count", 0),
+            )
+
+            col2.metric(
+                "Chunks",
+                result.get("chunk_count", 0),
+            )
+
+            col3.metric(
+                "Images",
+                result.get("image_count", 0),
+            )
+
+            col4.metric(
+                "Indexed points",
+                result.get("indexed_points", 0),
+            )
