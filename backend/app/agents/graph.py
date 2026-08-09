@@ -5,14 +5,17 @@ from langgraph.graph import END, START, StateGraph
 from app.agents.clarify_agent import ClarifyAgentNode
 from app.agents.document_agent import DocumentAgentNode
 from app.agents.general_agent import GeneralAgentNode
+from app.agents.sql_agent import SqlAgentNode
 from app.agents.state import AgentState
 from app.agents.supervisor import SupervisorNode, supervisor_router
 from app.services.rag_service import RagService
+from app.services.market_data_service import MarketDataService
 
 class OmniBrainGraph:
     def __init__(self, rag_service: RagService) -> None:
         self.supervisor = SupervisorNode()
         self.document_agent = DocumentAgentNode(rag_service)
+        self.sql_agent = SqlAgentNode(MarketDataService())
         self.general_agent = GeneralAgentNode()
         self.clarify_agent = ClarifyAgentNode()
         self.graph = self._build()
@@ -21,6 +24,7 @@ class OmniBrainGraph:
         builder = StateGraph(AgentState)
         builder.add_node("supervisor",self.supervisor)
         builder.add_node("document_agent",self.document_agent)
+        builder.add_node("sql_agent", self.sql_agent)
         builder.add_node("general_agent",self.general_agent)
         builder.add_node("clarify_agent",self.clarify_agent)
         builder.add_edge(START,"supervisor",)
@@ -28,11 +32,13 @@ class OmniBrainGraph:
             supervisor_router,
             {
                 "document_agent": "document_agent",
+                "sql_agent": "sql_agent",
                 "general_agent": "general_agent",
                 "clarify_agent": "clarify_agent",
             },
         )
         builder.add_edge("document_agent", END)
+        builder.add_edge("sql_agent", END)
         builder.add_edge("general_agent", END)
         builder.add_edge("clarify_agent", END)
         return builder.compile()

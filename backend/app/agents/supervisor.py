@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Literal
 from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
+from app.agents.routing import deterministic_route
 from app.agents.state import AgentRoute, AgentState
 from config.settings import settings
 
@@ -10,6 +11,7 @@ from config.settings import settings
 class SupervisorDecision(BaseModel):
     route: Literal[
         "document_agent",
+        "sql_agent",
         "general_agent",
         "clarify_agent",
     ] = Field(description="The agent that should process the request.")
@@ -38,6 +40,14 @@ class SupervisorNode:
                 "route": "clarify_agent",
                 "route_reason": "No question was provided.",
             }
+        route = deterministic_route(question, document_id)
+        if route:
+            reason = (
+                "The question requests structured historical market data."
+                if route == "sql_agent"
+                else "The question explicitly requests information from the selected document."
+            )
+            return {"route": route, "route_reason": reason}
         prompt = f"""
                     You are the supervisor for OmniBrain.
 
@@ -46,6 +56,10 @@ class SupervisorNode:
                     document_agent:
                     Use this route when the user asks about an uploaded PDF, book,
                     report, document, chapter, author, table, summary, or document fact.
+
+                    sql_agent:
+                    Use this route for historical stock prices, opening/closing prices,
+                    highs, lows, or trading volumes stored in the market database.
 
                     general_agent:
                     Use this route for general questions that do not depend on an

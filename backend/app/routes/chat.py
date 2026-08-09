@@ -33,7 +33,7 @@ router = APIRouter(prefix="/chat", tags=["Document Chat"])
     summary="Chat With Document",
     description=(
         "Routes the question through the LangGraph supervisor. "
-        "The supervisor selects the document, general, or clarification "
+        "The supervisor selects the document, SQL, general, or clarification "
         "agent."
     ),
 )

@@ -3,6 +3,7 @@ from typing import Any, Literal, TypedDict
 
 AgentRoute = Literal[
     "document_agent",
+    "sql_agent",
     "general_agent",
     "clarify_agent",
 ]
