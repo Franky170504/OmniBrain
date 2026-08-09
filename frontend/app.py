@@ -64,22 +64,14 @@ def render_source(source: dict[str, Any], index: int) -> None:
     else:
         page_label = f"Pages {page_start}-{page_end}"
 
-    with st.expander(f"{index:02d}  {filename} - {page_label}"):
-        st.markdown(
-            f"<div class='source-card'><strong>{filename}</strong><br>{page_label}"
-            f" &nbsp;|&nbsp; relevance: {source.get('score', 'n/a')}</div>",
-            unsafe_allow_html=True,
-        )
-        st.caption(f"Chunk ID: {source.get('chunk_id', 'Unavailable')}")
+    with st.expander(
+        f"Source {index}: {filename} — {page_label}"
+    ):
+        st.markdown(f"**Document:** {filename}")
+        st.markdown(f"**Pages:** {page_label}")
 
-
-def check_health(client: OmniBrainAPIClient) -> None:
-    try:
-        client.health()
-        st.session_state.backend_online = True
-    except Exception:
-        st.session_state.backend_online = False
-
+        if score is not None:
+            st.caption(f"Retrieval relevance score: {score:.3f}")
 
 initialize_state()
 client = OmniBrainAPIClient(base_url=st.session_state.backend_url)
@@ -203,13 +195,102 @@ with chat_tab:
         st.rerun()
 
 with status_tab:
-    st.subheader("Workspace status")
-    st.json({
-        "backend_url": st.session_state.backend_url,
-        "researcher": st.session_state.user_id,
-        "active_document": st.session_state.document_name,
-        "conversation_messages": len(st.session_state.messages),
-    })
+    st.subheader("Frontend session")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.caption("Backend URL")
+        st.code(st.session_state.backend_url)
+
+        st.caption("User ID")
+        st.code(st.session_state.user_id or "Not set")
+
+    with col2:
+        st.caption("Current document")
+        st.write(
+            st.session_state.document_name
+            or "No document selected"
+        )
+
+        st.caption("Messages")
+        st.metric(
+            "Chat messages",
+            len(st.session_state.messages),
+        )
+
+    st.divider()
+
+    st.subheader("Backend health")
+
     if st.button("Refresh backend status"):
-        check_health(client)
-        st.rerun()
+        try:
+            health = client.health()
+
+            if health.get("status") == "healthy":
+                st.success("Backend is healthy.")
+            else:
+                st.warning("Backend responded, but may need attention.")
+
+            qdrant = health.get("qdrant", {})
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    "Qdrant",
+                    qdrant.get("status", "unknown").title(),
+                )
+
+            with col2:
+                st.metric(
+                    "Collection",
+                    qdrant.get("collection_name", "unknown"),
+                )
+
+            with col3:
+                st.metric(
+                    "Indexed points",
+                    qdrant.get("points_count", 0),
+                )
+
+            if qdrant.get("collection_exists"):
+                st.success("Qdrant collection is available.")
+            else:
+                st.warning("Qdrant collection was not found.")
+
+        except Exception as exc:
+            st.error(str(exc))
+
+    if st.session_state.upload_result:
+        with st.expander("Last upload response"):
+            result = st.session_state.upload_result
+
+            st.success(
+                result.get(
+                    "message",
+                    "Document uploaded and indexed.",
+                )
+            )
+
+            col1, col2, col3, col4 = st.columns(4)
+
+            col1.metric(
+                "Pages",
+                result.get("page_count", 0),
+            )
+
+            col2.metric(
+                "Chunks",
+                result.get("chunk_count", 0),
+            )
+
+            col3.metric(
+                "Images",
+                result.get("image_count", 0),
+            )
+
+            col4.metric(
+                "Indexed points",
+                result.get("indexed_points", 0),
+            )
