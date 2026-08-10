@@ -20,25 +20,712 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-      .stApp { background: #f5f7fb; color: #172033; }
-      [data-testid="stSidebar"] { background: #10182d; }
-      [data-testid="stSidebar"] * { color: #f5f7ff; }
-      .hero { padding: 1.7rem 0 1.15rem; }
-      .eyebrow { color: #6d5dfc; font-weight: 700; font-size: .78rem; letter-spacing: .13em; text-transform: uppercase; }
-      .hero h1 { color: #111a30; font-size: 3rem; letter-spacing: -.06em; margin: .25rem 0; }
-      .hero p { color: #62708a; font-size: 1.07rem; max-width: 44rem; }
-      .document-card { background: #ffffff; border: 1px solid #e6eaf2; border-radius: 18px; padding: 1.05rem 1.25rem; box-shadow: 0 6px 25px rgba(30, 42, 75, .05); }
-      .document-card strong { color: #15213b; }
-      .source-card { background: #f7f8ff; border-left: 3px solid #6d5dfc; padding: .7rem .85rem; border-radius: 0 10px 10px 0; margin-bottom: .45rem; }
-      .status-dot { color: #19a974; font-size: .9rem; }
-      [data-testid="stMetric"] { background: #ffffff; border: 1px solid #e7eaf2; border-radius: 14px; padding: .65rem .85rem; }
-      .stButton > button[kind="primary"] { background: #6658f5; border-color: #6658f5; }
-      .stButton > button[kind="primary"]:hover { background: #5144db; border-color: #5144db; }
+
+    /* =========================================================
+       OMNIBRAIN — DARK TEAL GLASS THEME
+       ========================================================= */
+
+    :root {
+        --ob-black: #091413;
+        --ob-deep: #0c211c;
+        --ob-green: #285A48;
+        --ob-teal: #408A71;
+        --ob-mint: #B0E4CC;
+        --ob-white: #f4fbf8;
+        --ob-muted: #a7bbb3;
+        --ob-border: rgba(176, 228, 204, 0.16);
+        --ob-glass: rgba(18, 45, 38, 0.62);
+    }
+
+    /* ---------- APP BACKGROUND ---------- */
+
+    .stApp {
+        background:
+            radial-gradient(
+                circle at 82% 4%,
+                rgba(64, 138, 113, 0.40) 0%,
+                rgba(40, 90, 72, 0.25) 24%,
+                transparent 52%
+            ),
+            radial-gradient(
+                circle at 55% 35%,
+                rgba(64, 138, 113, 0.18),
+                transparent 42%
+            ),
+            linear-gradient(
+                145deg,
+                #091413 0%,
+                #0b1d19 38%,
+                #102d24 70%,
+                #285A48 100%
+            );
+
+        color: var(--ob-white);
+        min-height: 100vh;
+    }
+
+    /* subtle top glow */
+
+    .stApp::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(
+                circle at 90% 10%,
+                rgba(176, 228, 204, 0.10),
+                transparent 22%
+            );
+        z-index: 0;
+    }
+
+    /* ---------- MAIN CONTAINER ---------- */
+
+    .block-container {
+        padding-top: 0.5rem !important;
+        padding-bottom: 4rem;
+        max-width: 1500px;
+    }
+    /* ---------- HIDE STREAMLIT TOP BAR ---------- */
+
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+
+    [data-testid="stAppViewContainer"] {
+        padding-top: 0 !important;
+    }
+
+    .main .block-container {
+        padding-top: 0.5rem !important;
+    }
+    /* ---------- SIDEBAR ---------- */
+
+    [data-testid="stSidebar"] {
+        min-width: 335px !important;
+        max-width: 335px !important;
+        background:
+            linear-gradient(
+                180deg,
+                #06100e 0%,
+                #091413 45%,
+                #10251f 100%
+            );
+
+        border-right: 1px solid rgba(176, 228, 204, 0.10);
+    }
+
+    [data-testid="stSidebar"] > div:first-child {
+        padding-top: 2rem;
+    }
+
+    [data-testid="stSidebar"] * {
+        color: var(--ob-white);
+    }
+
+    [data-testid="stSidebar"] hr {
+        border-color: rgba(176, 228, 204, 0.14);
+        margin: 1.5rem 0;
+    }
+
+    [data-testid="stSidebar"] input {
+        background: rgba(20, 47, 39, 0.72) !important;
+        border: 1px solid rgba(176, 228, 204, 0.12) !important;
+        color: white !important;
+        border-radius: 10px !important;
+    }
+
+    /* ---------- HERO ---------- */
+
+    .hero {
+        position: relative;
+        padding: 1.25rem 0 1.05rem;
+    }
+
+    .eyebrow {
+        color: #a7e8c5;
+        font-weight: 800;
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        margin-bottom: 0.65rem;
+    }
+
+    .hero h1 {
+        color: #F4FBF8 !important;
+        -webkit-text-fill-color: #F4FBF8 !important;
+        background: none !important;
+        -webkit-background-clip: initial !important;
+        background-clip: initial !important;
+
+        font-size: 3.15rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -.045em;
+        line-height: 1.05;
+        margin: .2rem 0 .65rem;
+    }
+     
+    
+
+    .hero h1 span {
+        color: #8FE0B8 !important;
+        -webkit-text-fill-color: #8FE0B8 !important;
+        background: none !important;
+        -webkit-background-clip: initial !important;
+        background-clip: initial !important;
+    }
+
+    .hero p {
+        color: #e8f1ed !important;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        max-width: 48rem;
+        margin: 0;
+    }
+    /* ---------- TABS ---------- */
+
+    
+    
+
+    
+    /* ---------- GLASS CARDS ---------- */
+
+    .document-card {
+        background:
+            linear-gradient(
+                145deg,
+                rgba(40, 90, 72, .42),
+                rgba(9, 20, 19, .55)
+            );
+
+        border: 1px solid var(--ob-border);
+        border-radius: 18px;
+        padding: 1.15rem 1.3rem;
+        box-shadow:
+            0 15px 45px rgba(0, 0, 0, .22),
+            inset 0 1px 0 rgba(255,255,255,.04);
+
+        backdrop-filter: blur(14px);
+    }
+
+    .document-card strong {
+        color: var(--ob-white);
+    }
+
+    /* ---------- SOURCE CARDS ---------- */
+
+    .source-card {
+        background: rgba(40, 90, 72, .30);
+        border: 1px solid rgba(176, 228, 204, .13);
+        border-left: 3px solid var(--ob-teal);
+        padding: .8rem 1rem;
+        border-radius: 0 12px 12px 0;
+        margin-bottom: .5rem;
+    }
+
+    .status-dot {
+        color: var(--ob-mint);
+        font-size: .9rem;
+    }
+
+    /* ---------- METRICS ---------- */
+
+    [data-testid="stMetric"] {
+        background:
+            linear-gradient(
+                145deg,
+                rgba(40, 90, 72, .36),
+                rgba(9, 20, 19, .50)
+            );
+
+        border: 1px solid var(--ob-border);
+        border-radius: 16px;
+        padding: 1rem;
+        box-shadow:
+            0 12px 30px rgba(0,0,0,.20);
+    }
+
+    [data-testid="stMetricLabel"] {
+        color: #9db3aa !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        color: var(--ob-white) !important;
+    }
+
+    /* ---------- BUTTONS ---------- */
+
+    .stButton > button {
+        border-radius: 11px !important;
+        border: 1px solid rgba(176, 228, 204, .25) !important;
+        background: rgba(20, 47, 39, .70) !important;
+        color: var(--ob-white) !important;
+        font-weight: 700 !important;
+        transition: all .2s ease;
+    }
+
+    .stButton > button:hover {
+        border-color: var(--ob-mint) !important;
+        background: rgba(64, 138, 113, .35) !important;
+        color: white !important;
+        transform: translateY(-1px);
+    }
+
+    .stButton > button[kind="primary"] {
+        background:
+            linear-gradient(
+                135deg,
+                #285A48,
+                #408A71
+            ) !important;
+
+        border: 1px solid rgba(176, 228, 204, .35) !important;
+
+        box-shadow:
+            0 8px 24px rgba(64, 138, 113, .25);
+    }
+
+    .stButton > button[kind="primary"]:hover {
+        background:
+            linear-gradient(
+                135deg,
+                #408A71,
+                #B0E4CC
+            ) !important;
+
+        color: #091413 !important;
+        box-shadow:
+            0 10px 30px rgba(176, 228, 204, .22);
+    }
+
+    /* ---------- FILE UPLOADER ---------- */
+
+    [data-testid="stFileUploader"] {
+        background:
+            radial-gradient(
+                circle at center,
+                rgba(64, 138, 113, .18),
+                rgba(9, 20, 19, .35)
+            ) !important;
+
+        border: 1px dashed rgba(176, 228, 204, .55) !important;
+        border-radius: 16px !important;
+        padding: .8rem !important;
+    }
+
+    [data-testid="stFileUploader"] section {
+        background: transparent !important;
+    }
+
+    [data-testid="stFileUploader"] small {
+        color: #9db3aa !important;
+    }
+
+    /* ---------- CHAT ---------- */
+
+    [data-testid="stChatMessage"] {
+        background: rgba(18, 45, 38, .42);
+        border: 1px solid rgba(176, 228, 204, .10);
+        border-radius: 16px;
+        margin-bottom: .75rem;
+    }
+
+    [data-testid="stChatInput"] {
+        border-color: rgba(176, 228, 204, .25) !important;
+    }
+
+    [data-testid="stChatInput"] > div {
+        background: rgba(9, 20, 19, .75) !important;
+        border: 1px solid rgba(176, 228, 204, .22) !important;
+    }
+
+    /* ---------- EXPANDERS ---------- */
+
+    [data-testid="stExpander"] {
+        background: rgba(18, 45, 38, .42) !important;
+        border: 1px solid rgba(176, 228, 204, .13) !important;
+        border-radius: 13px !important;
+    }
+
+    /* ---------- ALERTS ---------- */
+
+    [data-testid="stAlert"] {
+        border-radius: 12px !important;
+    }
+
+    /* ---------- CODE ---------- */
+
+    code {
+        color: var(--ob-mint) !important;
+    }
+
+    /* ---------- DIVIDERS ---------- */
+
+    hr {
+        border-color: rgba(176, 228, 204, .12) !important;
+    }
+
+    /* ---------- TEXT ---------- */
+
+    .stMarkdown,
+    .stCaption {
+        color: #c0d0ca;
+    }
+
+    h1, h2, h3, h4 {
+        color: var(--ob-white) !important;
+    }
+
+    .document-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    margin-top: .8rem;
+    background: rgba(15, 35, 38, .75);
+    border: 1px solid rgba(176, 228, 204, .16);
+    border-radius: 14px;
+}
+
+.file-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(64, 138, 113, .18);
+    border: 1px solid rgba(176, 228, 204, .20);
+    color: #B0E4CC;
+    font-weight: 800;
+    font-size: .72rem;
+}
+
+.file-info {
+    display: flex;
+    flex-direction: column;
+    gap: .25rem;
+}
+
+.file-info strong {
+    color: #F4FBF8;
+    font-size: .95rem;
+}
+
+.file-info span {
+    color: #9FB7AE;
+    font-size: .8rem;
+}
+
+.workflow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: .75rem 0;
+}
+
+.workflow-icon {
+    min-width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(64, 138, 113, .20);
+    border: 1px solid rgba(176, 228, 204, .22);
+    color: #B0E4CC;
+    font-weight: 800;
+}
+
+.workflow-content {
+    padding-top: .15rem;
+}
+
+.workflow-title {
+    color: #F4FBF8;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: .25rem;
+}
+
+.workflow-description {
+    color: #A9BCB5;
+    font-size: .9rem;
+    line-height: 1.5;
+}   
+
+/* ---------- UPLOAD + WORKFLOW GLASS CARDS ---------- */
+
+/* ---------- UPLOAD + WORKFLOW GLASS CARDS ---------- */
+
+
+    /* ---------- MAIN WORKSPACE PANELS ---------- */
+
+[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+    background:
+        linear-gradient(
+            145deg,
+            rgba(18, 45, 38, 0.72),
+            rgba(9, 20, 19, 0.55)
+        ) !important;
+
+    border: 1px solid rgba(176, 228, 204, 0.12) !important;
+    border-radius: 18px !important;
+
+    padding: 1.5rem !important;
+
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255,255,255,0.025);
+
+    backdrop-filter: blur(14px);
+}
+    /* Compact workspace cards */
+[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+    min-height: 0 !important;
+}
+
+/* Reduce empty space inside workspace cards */
+[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div {
+    gap: 0.6rem !important;
+}
+
+/* Keep section headings tight */
+[data-testid="stHorizontalBlock"] h3 {
+    margin-top: 0 !important;
+    margin-bottom: 0.35rem !important;
+}
+
+/* Compact captions */
+[data-testid="stHorizontalBlock"] [data-testid="stCaptionContainer"] {
+    margin-bottom: 0.8rem !important;
+}
+
+/* =========================================================
+   TOP WORKSPACE NAVIGATION
+   ========================================================= */
+
+[data-baseweb="tab-list"] {
+    width: 100% !important;
+    height: 56px !important;
+
+    display: flex !important;
+    align-items: stretch !important;
+
+    background: rgba(10, 42, 38, 0.72) !important;
+
+    border: 1px solid rgba(143, 224, 184, 0.16) !important;
+    border-radius: 12px !important;
+
+    padding: 0 8px !important;
+    gap: 0 !important;
+
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.025),
+        0 8px 24px rgba(0,0,0,0.10) !important;
+
+    overflow: hidden !important;
+}
+
+
+/* Individual tabs */
+
+[data-baseweb="tab-list"] > button {
+    position: relative !important;
+
+    flex: 1 1 0 !important;
+
+    height: 54px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    background: transparent !important;
+
+    border: none !important;
+    border-radius: 9px !important;
+
+    color: #D7E8E1 !important;
+
+    font-size: 0.92rem !important;
+    font-weight: 500 !important;
+
+    padding: 0 18px !important;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease !important;
+}
+
+
+/* Remove Streamlit's default active border */
+
+[data-baseweb="tab-list"] > button::after {
+    display: none !important;
+}
+
+
+/* Hover */
+
+[data-baseweb="tab-list"] > button:hover {
+    background: rgba(143, 224, 184, 0.055) !important;
+    color: #F1FAF6 !important;
+}
+
+
+/* Active tab */
+
+[data-baseweb="tab-list"] > button[aria-selected="true"] {
+    background: rgba(143, 224, 184, 0.08) !important;
+    color: #F3FBF8 !important;
+
+    box-shadow:
+        inset 0 -2px 0 #8FE0B8 !important;
+}
+
+
+/* =========================================================
+   ICONS
+   ========================================================= */
+
+[data-baseweb="tab-list"] > button:nth-child(1)::before {
+    content: "▤";
+    font-size: 1rem;
+    margin-right: 10px;
+    color: #E5F3EE;
+}
+
+[data-baseweb="tab-list"] > button:nth-child(2)::before {
+    content: "▱";
+    font-size: 1rem;
+    margin-right: 10px;
+    color: #E5F3EE;
+}
+
+[data-baseweb="tab-list"] > button:nth-child(3)::before {
+    content: "⊞";
+    font-size: 1.05rem;
+    margin-right: 10px;
+    color: #E5F3EE;
+}
+
+
+    /* =========================
+   OMNIBRAIN TOP TABS
+   ========================= */
+
+.stTabs {
+    width: 100% !important;
+}
+
+/* Outer navigation bar */
+.stTabs [data-baseweb="tab-list"] {
+    width: 100% !important;
+    min-height: 56px !important;
+    height: 56px !important;
+
+    display: flex !important;
+    align-items: stretch !important;
+
+    padding: 4px !important;
+    gap: 0 !important;
+
+    background: rgba(8, 37, 34, 0.78) !important;
+
+    border: 1px solid rgba(143, 224, 184, 0.16) !important;
+    border-radius: 12px !important;
+
+    box-sizing: border-box !important;
+}
+
+/* Each tab */
+.stTabs [data-baseweb="tab-list"] > button {
+    flex: 1 !important;
+    width: 33.333% !important;
+    max-width: none !important;
+
+    height: 48px !important;
+    min-height: 48px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    position: relative !important;
+
+    padding: 0 24px !important;
+    margin: 0 !important;
+
+    border: 0 !important;
+    border-radius: 9px !important;
+
+    background: transparent !important;
+
+    color: #d7e8e1 !important;
+
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+}
+
+/* Active tab */
+.stTabs [data-baseweb="tab-list"] > button[aria-selected="true"] {
+    color: #f4fbf8 !important;
+    background: rgba(143, 224, 184, 0.075) !important;
+}
+
+/* Active mint underline */
+.stTabs [data-baseweb="tab-highlight"] {
+    background: #8fe0b8 !important;
+    height: 2px !important;
+    border-radius: 999px !important;
+}
+
+/* Remove Streamlit's extra bottom border */
+.stTabs [data-baseweb="tab-border"] {
+    background: transparent !important;
+}
+
+/* Icons */
+.stTabs [data-baseweb="tab-list"] > button:nth-child(1)::before {
+    content: "▤";
+    margin-right: 9px;
+    color: #e5f3ee;
+    font-size: 15px;
+}
+
+.stTabs [data-baseweb="tab-list"] > button:nth-child(2)::before {
+    content: "▱";
+    margin-right: 9px;
+    color: #e5f3ee;
+    font-size: 15px;
+}
+
+.stTabs [data-baseweb="tab-list"] > button:nth-child(3)::before {
+    content: "⊞";
+    margin-right: 9px;
+    color: #e5f3ee;
+    font-size: 15px;
+}
+
+/* Chevron between sections */
+.stTabs [data-baseweb="tab-list"] > button:nth-child(1)::after,
+.stTabs [data-baseweb="tab-list"] > button:nth-child(2)::after {
+    content: "›";
+    position: absolute;
+    right: 18px;
+
+    color: #8fe0b8;
+    font-size: 20px;
+    font-weight: 300;
+
+    background: transparent;
+}
     </style>
     """,
     unsafe_allow_html=True,
 )
-
 
 def initialize_state() -> None:
     defaults: dict[str, Any] = {
@@ -57,6 +744,7 @@ def initialize_state() -> None:
 def render_source(source: dict[str, Any], index: int) -> None:
     filename = source.get("filename") or "Unknown document"
     page_start, page_end = source.get("page_start"), source.get("page_end")
+    score = source.get("score")
     if page_start is None:
         page_label = "Page unavailable"
     elif page_end is None or page_start == page_end:
@@ -74,58 +762,173 @@ def render_source(source: dict[str, Any], index: int) -> None:
             st.caption(f"Retrieval relevance score: {score:.3f}")
 
 initialize_state()
+
+def check_health(client):
+    try:
+        client.health()
+        st.session_state.backend_online = True
+        st.success("● Backend connected")
+    except Exception:
+        st.session_state.backend_online = False
+        st.warning("Backend offline — start FastAPI first")
+        
 client = OmniBrainAPIClient(base_url=st.session_state.backend_url)
 
 with st.sidebar:
-    st.markdown("## OmniBrain")
-    st.caption("MULTI-MODAL RESEARCH WORKSPACE")
-    st.divider()
-    st.markdown("### Workspace settings")
-    st.session_state.backend_url = st.text_input("API URL", value=st.session_state.backend_url).strip()
-    st.session_state.user_id = st.text_input("Researcher ID", value=st.session_state.user_id).strip() or "local-user"
-    client = OmniBrainAPIClient(base_url=st.session_state.backend_url)
-    if st.button("Test connection", use_container_width=True):
-        check_health(client)
-    if st.session_state.backend_online is True:
-        st.success("Backend connected")
-    elif st.session_state.backend_online is False:
-        st.warning("Backend offline - start FastAPI first")
+
+    st.markdown(
+        """
+        <div style="
+            font-size:1.65rem;
+            font-weight:800;
+            letter-spacing:-.04em;
+            margin-bottom:.15rem;
+        ">
+            ✦ OmniBrain
+        </div>
+
+        <div style="
+            color:#8fa69d;
+            font-size:.68rem;
+            font-weight:700;
+            letter-spacing:.14em;
+        ">
+            MULTI-MODAL RESEARCH WORKSPACE
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.divider()
-    st.markdown("### Active source")
+
+    st.markdown(
+        "<div style='color:#35D6A0;font-weight:700;letter-spacing:.08em;'>WORKSPACE SETTINGS</div>",
+        unsafe_allow_html=True,
+    )
+
+    st.session_state.backend_url = st.text_input(
+        "API URL",
+        value=st.session_state.backend_url,
+    ).strip()
+
+    st.session_state.user_id = st.text_input(
+        "Researcher ID",
+        value=st.session_state.user_id,
+    ).strip() or "local-user"
+
+
+    client = OmniBrainAPIClient(
+        base_url=st.session_state.backend_url
+    )
+
+    if st.button(
+        "Test connection",
+        use_container_width=True,
+    ):
+        check_health(client)
+
+    if st.session_state.backend_online is True:
+        st.success("●  Backend connected")
+
+    elif st.session_state.backend_online is False:
+        st.warning("Backend offline — start FastAPI first")
+
+    st.divider()
+
+    st.markdown(
+        "<div style='color:#35D6A0;font-weight:700;letter-spacing:.08em;'>ACTIVE SOURCE</div>",
+        unsafe_allow_html=True,
+    )
+
     if st.session_state.document_id:
-        st.markdown(f"**{st.session_state.document_name or 'Untitled document'}**")
-        st.caption("Ready for cited questions")
-        if st.button("Clear document", use_container_width=True):
+
+        st.markdown(
+            f"""
+            <div class="document-card">
+                <div style="font-size:1.4rem;">📄</div>
+                <strong>
+                    {st.session_state.document_name or "Untitled document"}
+                </strong>
+                <div style="
+                    color:#9db3aa;
+                    font-size:.8rem;
+                    margin-top:.35rem;
+                ">
+                    ✦ Ready for cited questions
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if st.button(
+            "Clear document",
+            use_container_width=True,
+        ):
             st.session_state.document_id = None
             st.session_state.document_name = None
             st.session_state.upload_result = None
             st.rerun()
+
     else:
-        st.caption("Upload a PDF to ground your answers in evidence.")
+
+        st.caption(
+            "Upload a PDF to ground your answers in evidence."
+        )
+
+    st.divider()
+
+    st.markdown(
+        """
+        <div style="
+            margin-top:2rem;
+            color:#78928a;
+            font-size:.78rem;
+            line-height:1.6;
+        ">
+            <div style="color:#B0E4CC;font-weight:700;">
+                ✦ OmniBrain v1.0.0
+            </div>
+            <div>
+                Agentic Multi-Modal RAG
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 st.markdown(
-    """<div class="hero"><div class="eyebrow">Agentic multi-modal RAG</div>
-    <h1>Research with receipts.</h1>
-    <p>Upload a report, let OmniBrain index it, and ask questions with transparent agent routing and page-level evidence.</p></div>""",
+    """<div class="hero">
+<div class="eyebrow">AGENTIC MULTI-MODAL RAG ✦</div>
+<h1>Research with <span>receipts.</span></h1>
+<p>Upload a report, let OmniBrain index it,<br>
+and ask questions with transparent agent routing and page-level evidence.</p>
+</div>""",
     unsafe_allow_html=True,
 )
 
 upload_tab, chat_tab, status_tab = st.tabs(["01  Add a source", "02  Ask OmniBrain", "Workspace"])
 
 with upload_tab:
-    left, right = st.columns([1.3, 1], gap="large")
+    left, right = st.columns([1, 1], gap="large")
+
     with left:
         st.subheader("Build your evidence base")
         st.caption("PDFs are parsed, chunked, and indexed for retrieval.")
-        uploaded_file = st.file_uploader("Drop a PDF here", type=["pdf"], accept_multiple_files=False)
-        if uploaded_file is not None:
-            st.markdown(
-                f"<div class='document-card'><strong>{uploaded_file.name}</strong><br>"
-                f"{uploaded_file.size / 1_048_576:.2f} MB • ready to index</div>",
-                unsafe_allow_html=True,
-            )
-        if st.button("Index document", type="primary", disabled=uploaded_file is None):
+
+        uploaded_file = st.file_uploader(
+            "Drag & drop a PDF here or click to browse",
+            type=["pdf"],
+            accept_multiple_files=False,
+            label_visibility="visible",
+        )
+
+        if st.button(
+            "✦  Index document",
+            type="primary",
+            disabled=uploaded_file is None,
+            use_container_width=True,
+        ):
             try:
                 with st.spinner("Parsing, embedding, and indexing your document..."):
                     result = client.upload_document(
@@ -134,26 +937,81 @@ with upload_tab:
                         content_type=uploaded_file.type or "application/pdf",
                         user_id=st.session_state.user_id,
                     )
+
                 st.session_state.upload_result = result
                 st.session_state.document_id = result.get("document_id")
-                st.session_state.document_name = result.get("filename", uploaded_file.name)
-                st.success(result.get("message", "Document indexed successfully."))
+                st.session_state.document_name = result.get(
+                    "filename",
+                    uploaded_file.name,
+                )
+
             except Exception as exc:
                 st.error(f"Could not index this document: {exc}")
-    with right:
-        st.subheader("How it works")
-        st.markdown("**1. Parse** - text and structure are extracted from your PDF.")
-        st.markdown("**2. Retrieve** - relevant chunks are found in Qdrant.")
-        st.markdown("**3. Reason** - the supervisor selects the right specialist agent.")
-        st.markdown("**4. Cite** - answers link back to their source pages.")
+        with right:
+            st.subheader("How it works")
 
+            steps = [
+                (
+                    "01",
+                    "Parse",
+                    "Text and structure are extracted from your PDF.",
+                    "▤",
+                ),
+                (
+                    "02",
+                    "Retrieve",
+                    "Relevant chunks are found in Qdrant.",
+                    "◈",
+                ),
+                (
+                    "03",
+                    "Reason",
+                    "The supervisor selects the right specialist agent.",
+                    "✦",
+                ),
+                (
+                    "04",
+                    "Cite",
+                    "Answers link back to their source pages.",
+                    "↗",
+                ),
+            ]
+
+            for number, title, description, icon in steps:
+                st.markdown(
+                    f"""
+                    <div class="workflow-step">
+                        <div class="workflow-icon">{icon}</div>
+                        <div class="workflow-content">
+                            <div class="workflow-title">
+                                {number}. {title}
+                            </div>
+                            <div class="workflow-description">
+                                {description}
+                            </div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
     if st.session_state.upload_result:
         result = st.session_state.upload_result
+
         st.divider()
         st.subheader("Index summary")
-        metrics = st.columns(4)
-        for column, label, key in zip(metrics, ["Pages", "Chunks", "Images", "Indexed points"], ["page_count", "chunk_count", "image_count", "indexed_points"]):
-            column.metric(label, result.get(key, 0))
+
+        metrics = st.columns(2)
+
+        for column, label, key in zip(
+            metrics,
+            ["Pages", "Images"],
+            ["page_count", "image_count"],
+        ):
+            with column:
+                st.metric(
+                    label,
+                    result.get(key, 0),
+                )
 
 with chat_tab:
     st.subheader("Ask a grounded question")
@@ -234,7 +1092,7 @@ with status_tab:
 
             qdrant = health.get("qdrant", {})
 
-            col1, col2, col3 = st.columns(3)
+            col1, col2 = st.columns(2)
 
             with col1:
                 st.metric(
@@ -248,11 +1106,7 @@ with status_tab:
                     qdrant.get("collection_name", "unknown"),
                 )
 
-            with col3:
-                st.metric(
-                    "Indexed points",
-                    qdrant.get("points_count", 0),
-                )
+            
 
             if qdrant.get("collection_exists"):
                 st.success("Qdrant collection is available.")
@@ -273,24 +1127,14 @@ with status_tab:
                 )
             )
 
-            col1, col2, col3, col4 = st.columns(4)
+            metrics = st.columns(2)
 
-            col1.metric(
+            metrics[0].metric(
                 "Pages",
                 result.get("page_count", 0),
             )
 
-            col2.metric(
-                "Chunks",
-                result.get("chunk_count", 0),
-            )
-
-            col3.metric(
+            metrics[1].metric(
                 "Images",
                 result.get("image_count", 0),
-            )
-
-            col4.metric(
-                "Indexed points",
-                result.get("indexed_points", 0),
             )
