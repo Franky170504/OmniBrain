@@ -24,6 +24,17 @@ python -m unittest discover -s backend/tests -v
 
 Expected result: four passing tests, covering two vector-document prompts and two SQL-market-data prompts.
 
+## Self-RAG and guardrail audit
+
+The document route now retries once when retrieved chunks are empty or score below `0.45`. The retry narrows the query to direct facts, named entities, and numerical evidence. If that retry is still weak, OmniBrain refuses to answer rather than generating an ungrounded response. A final citation check also blocks responses that omit `[Source n]` citations.
+
+Run all audits with:
+
+```powershell
+$env:PYTHONPATH = "backend"
+python -m unittest discover -s backend/tests -v
+```
+
 ## Demo queries
 
 ```text

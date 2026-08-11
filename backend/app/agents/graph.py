@@ -49,6 +49,7 @@ class OmniBrainGraph:
             "user_id": user_id,
             "document_id": document_id,
             "sources": [],
+            "retrieval_attempts": 0,
             "error": None,
         }
 
@@ -76,4 +77,6 @@ class OmniBrainGraph:
             "sources": result.get("sources", []),
             "route": result.get("route"),
             "route_reason": result.get("route_reason"),
+            "retrieval_attempts": result.get("retrieval_attempts", 0),
+            "error": result.get("error"),
         }

@@ -16,4 +16,5 @@ class AgentState(TypedDict, total=False):
     route_reason: str
     answer: str
     sources: list[dict[str, Any]]
+    retrieval_attempts: int
     error: str | None

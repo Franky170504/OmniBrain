@@ -99,6 +99,7 @@ def chat_with_document(
             route=result.get("route"),
             route_reason=result.get("route_reason"),
             error=result.get("error"),
+            retrieval_attempts=result.get("retrieval_attempts", 0),
         )
 
         LOGGER.info("Chat request completed route=%s source_count=%d", response.route, len(response.sources))
