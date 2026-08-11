@@ -211,15 +211,24 @@ WITH
 -- ADDITIONAL CONSTRAINTS
 -- ============================================================================
 
-ALTER TABLE query_engine.responses
-
-ADD CONSTRAINT chk_response_hash
-CHECK
-(
-    response_hash IS NULL
-    OR
-    response_hash ~ '^[A-Fa-f0-9]{64}$'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'chk_response_hash'
+          AND conrelid = 'query_engine.responses'::regclass
+    ) THEN
+        ALTER TABLE query_engine.responses
+            ADD CONSTRAINT chk_response_hash
+            CHECK
+            (
+                response_hash IS NULL
+                OR
+                response_hash ~ '^[A-Fa-f0-9]{64}$'
+            );
+    END IF;
+END $$;
 
 -- ============================================================================
 -- TABLE COMMENT
@@ -280,6 +289,8 @@ COMMENT ON COLUMN query_engine.responses.updated_at IS
 -- ============================================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_responses_updated_at ON query_engine.responses;
 
 CREATE TRIGGER trg_responses_updated_at
 BEFORE UPDATE

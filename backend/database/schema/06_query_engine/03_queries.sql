@@ -272,6 +272,8 @@ COMMENT ON COLUMN query_engine.queries.deleted_at IS
 -- TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_queries_updated_at ON query_engine.queries;
+
 CREATE TRIGGER trg_queries_updated_at
 BEFORE UPDATE
 ON query_engine.queries

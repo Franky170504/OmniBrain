@@ -4,11 +4,12 @@ import json
 import logging
 import re
 import unicodedata
+import uuid
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable, Iterator
 import fitz  # PyMuPDF
-from config.path_config import *
+from app.core.app_config import INPUT_DIR, OUTPUT_DIR
 
 LOGGER = logging.getLogger("pdf_pipeline")
 
@@ -43,9 +44,9 @@ class ExtractedImage:
     path: str
     sha256: str
 
-def stable_id(*parts: object, length: int = 24) -> str:
+def stable_id(*parts: object, length: int = 36) -> str:
     payload = "\x1f".join(str(part) for part in parts)
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:length]
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, payload))
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -267,7 +268,7 @@ def create_chunks(
 
         chunk_text = "\n\n".join(text for _, text in current_units).strip()
         page_numbers = [page_number for page_number, _ in current_units]
-        chunk_index = len(chunks)
+        chunk_index = len(chunks) + 1
 
         chunks.append(
             TextChunk(

@@ -226,6 +226,8 @@ COMMENT ON COLUMN query_engine.chat_sessions.deleted_at IS
 -- UPDATED_AT TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_chat_sessions_updated_at ON query_engine.chat_sessions;
+
 CREATE TRIGGER trg_chat_sessions_updated_at
 BEFORE UPDATE
 ON query_engine.chat_sessions

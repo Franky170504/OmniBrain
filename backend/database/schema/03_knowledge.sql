@@ -4,11 +4,7 @@
 -- DESCRIPTION:
 --     Defines the Knowledge schema core tables responsible for organizing
 --     enterprise knowledge into domains and collections.
---
--- TABLES:
---     1. knowledge.domains
---     2. knowledge.collections
---
+
 -- DEPENDENCIES:
 --     - 00_extensions.sql
 --     - 01_schemas.sql
@@ -87,6 +83,8 @@ COMMENT ON COLUMN knowledge.domains.updated_at IS
 -- TRIGGER
 -- Automatically maintain updated_at
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_domains_bu_set_updated_at ON knowledge.domains;
 
 CREATE TRIGGER trg_domains_bu_set_updated_at
 BEFORE UPDATE
@@ -186,6 +184,8 @@ COMMENT ON COLUMN knowledge.collections.updated_at IS
 -- Automatically maintain updated_at
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_collections_bu_set_updated_at ON knowledge.collections;
+
 CREATE TRIGGER trg_collections_bu_set_updated_at
 BEFORE UPDATE
 ON knowledge.collections
@@ -224,6 +224,8 @@ CREATE TABLE IF NOT EXISTS knowledge.documents (
 
     collection_id UUID
         NOT NULL,
+
+    owner_user_id UUID,
 
     ---------------------------------------------------------------------------
     -- Human Metadata
@@ -335,6 +337,12 @@ CREATE TABLE IF NOT EXISTS knowledge.documents (
     CONSTRAINT fk_documents_collection
         FOREIGN KEY (collection_id)
         REFERENCES knowledge.collections(collection_id)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_documents_owner
+        FOREIGN KEY (owner_user_id)
+        REFERENCES auth.users(user_id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
@@ -452,6 +460,30 @@ CREATE TABLE IF NOT EXISTS knowledge.documents (
             )
         )
 );
+
+ALTER TABLE knowledge.documents
+    ADD COLUMN IF NOT EXISTS owner_user_id UUID;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_documents_owner'
+          AND conrelid = 'knowledge.documents'::regclass
+    ) THEN
+        ALTER TABLE knowledge.documents
+            ADD CONSTRAINT fk_documents_owner
+            FOREIGN KEY (owner_user_id)
+            REFERENCES auth.users(user_id)
+            ON DELETE RESTRICT
+            ON UPDATE CASCADE;
+    END IF;
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_documents_owner
+ON knowledge.documents(owner_user_id);
 
 
 
@@ -677,6 +709,8 @@ COMMENT ON COLUMN knowledge.pages.updated_at IS
 'Timestamp of the last update.';
 
 --Trigger to automatically update the updated_at timestamp before every UPDATE
+DROP TRIGGER IF EXISTS trg_pages_bu_set_updated_at ON knowledge.pages;
+
 CREATE TRIGGER trg_pages_bu_set_updated_at
 BEFORE UPDATE
 ON knowledge.pages
@@ -967,6 +1001,8 @@ COMMENT ON COLUMN knowledge.chunks.updated_at IS
 -- ============================================================================
 -- TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_chunks_bu_set_updated_at ON knowledge.chunks;
 
 CREATE TRIGGER trg_chunks_bu_set_updated_at
 BEFORE UPDATE
@@ -1365,6 +1401,8 @@ COMMENT ON COLUMN knowledge.images.updated_at IS
 -- TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_images_bu_set_updated_at ON knowledge.images;
+
 CREATE TRIGGER trg_images_bu_set_updated_at
 BEFORE UPDATE
 ON knowledge.images
@@ -1751,6 +1789,8 @@ COMMENT ON COLUMN knowledge.tables.updated_at IS
 -- TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_tables_bu_set_updated_at ON knowledge.tables;
+
 CREATE TRIGGER trg_tables_bu_set_updated_at
 BEFORE UPDATE
 ON knowledge.tables
@@ -1959,6 +1999,8 @@ COMMENT ON COLUMN knowledge.tags.updated_at IS
 -- ============================================================================
 -- TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_tags_bu_set_updated_at ON knowledge.tags;
 
 CREATE TRIGGER trg_tags_bu_set_updated_at
 BEFORE UPDATE

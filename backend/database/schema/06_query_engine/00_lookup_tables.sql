@@ -163,17 +163,23 @@ COMMENT ON TABLE query_engine.retrieval_strategies IS
 -- TRIGGERS
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_query_statuses_updated_at ON query_engine.query_statuses;
+
 CREATE TRIGGER trg_query_statuses_updated_at
 BEFORE UPDATE
 ON query_engine.query_statuses
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trg_query_intents_updated_at ON query_engine.query_intents;
+
 CREATE TRIGGER trg_query_intents_updated_at
 BEFORE UPDATE
 ON query_engine.query_intents
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_retrieval_strategies_updated_at ON query_engine.retrieval_strategies;
 
 CREATE TRIGGER trg_retrieval_strategies_updated_at
 BEFORE UPDATE
@@ -411,6 +417,8 @@ COMMENT ON COLUMN query_engine.query_priorities.metadata IS
 -- UPDATED_AT TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_query_priorities_updated_at ON query_engine.query_priorities;
+
 CREATE TRIGGER trg_query_priorities_updated_at
 BEFORE UPDATE
 ON query_engine.query_priorities
@@ -605,6 +613,8 @@ COMMENT ON COLUMN query_engine.context_item_types.metadata IS
 -- ============================================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_context_item_types_updated_at ON query_engine.context_item_types;
 
 CREATE TRIGGER trg_context_item_types_updated_at
 BEFORE UPDATE

@@ -4,7 +4,7 @@ from typing import Literal
 from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
 from app.agents.state import AgentRoute, AgentState
-from config.settings import settings
+from app.core.app_config import settings
 
 
 class SupervisorDecision(BaseModel):

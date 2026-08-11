@@ -224,6 +224,8 @@ COMMENT ON COLUMN query_engine.context_items.metadata IS
 -- TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_context_items_updated_at ON query_engine.context_items;
+
 CREATE TRIGGER trg_context_items_updated_at
 BEFORE UPDATE
 ON query_engine.context_items

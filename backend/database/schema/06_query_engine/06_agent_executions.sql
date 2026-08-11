@@ -318,6 +318,8 @@ COMMENT ON COLUMN query_engine.agent_executions.updated_at IS
 -- UPDATED_AT TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_agent_executions_updated_at ON query_engine.agent_executions;
+
 CREATE TRIGGER trg_agent_executions_updated_at
 BEFORE UPDATE
 ON query_engine.agent_executions

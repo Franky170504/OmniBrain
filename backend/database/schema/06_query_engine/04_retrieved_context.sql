@@ -283,6 +283,8 @@ COMMENT ON COLUMN query_engine.retrieved_context.updated_at IS
 -- UPDATED_AT TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_retrieved_context_updated_at ON query_engine.retrieved_context;
+
 CREATE TRIGGER trg_retrieved_context_updated_at
 BEFORE UPDATE
 ON query_engine.retrieved_context

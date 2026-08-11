@@ -5,7 +5,7 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 
-from config.settings import settings
+from app.core.app_config import settings
 from app.services.qdrant_service import QdrantService
 
 class RagService:
@@ -34,7 +34,26 @@ class RagService:
         return "\n\n".join(sections)
 
     def answer(self, *, question: str, user_id: str, document_id: str | None = None) -> dict[str, Any]:
-        results = self.qdrant_service.search(question, user_id=user_id, document_id=document_id)
+        results = self.qdrant_service.search(
+            question,
+            user_id=user_id,
+            document_id=document_id,
+            limit=settings.qdrant_top_k,
+            score_threshold=settings.qdrant_score_threshold,
+        )
+
+        # Controlled fallback:
+        # If no high-confidence result meets the primary threshold,
+        # retry with the lower fallback threshold.
+        if not results:
+            results = self.qdrant_service.search(
+                question,
+                user_id=user_id,
+                document_id=document_id,
+                limit=settings.qdrant_top_k,
+                score_threshold=settings.qdrant_fallback_threshold,
+            )
+
         if not results:
             return {
                 "answer": (
@@ -43,6 +62,7 @@ class RagService:
                 ),
                 "sources": [],
             }
+
         context = self.build_context(results)
         response = self.model.invoke(
             [
@@ -61,15 +81,19 @@ class RagService:
                 ),
             ]
         )
-        answer = (response.content
+        answer = (
+            response.content
             if isinstance(response.content, str)
-            else str(response.content))
+            else str(response.content)
+        )
 
         return {
             "answer": answer,
             "sources": [
                 {
+                    "point_id": item.get("point_id"),
                     "chunk_id": item.get("chunk_id"),
+                    "document_id": item.get("document_id"),
                     "filename": item.get("filename"),
                     "page_start": item.get("page_start"),
                     "page_end": item.get("page_end"),
