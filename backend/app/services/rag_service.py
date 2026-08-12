@@ -6,6 +6,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 
 from config.settings import settings
+from app.services.guardrail_service import RetrievalGuardrail
 from app.services.qdrant_service import QdrantService
 
 class RagService:
@@ -35,13 +36,23 @@ class RagService:
 
     def answer(self, *, question: str, user_id: str, document_id: str | None = None) -> dict[str, Any]:
         results = self.qdrant_service.search(question, user_id=user_id, document_id=document_id)
-        if not results:
+        retrieval_attempts = 1
+
+        if not RetrievalGuardrail.is_relevant(results):
+            rewritten_query = RetrievalGuardrail.rewrite_query(question)
+            results = self.qdrant_service.search(
+                rewritten_query,
+                user_id=user_id,
+                document_id=document_id,
+            )
+            retrieval_attempts = 2
+
+        if not RetrievalGuardrail.is_relevant(results):
             return {
-                "answer": (
-                    "I could not find relevant information "
-                    "in the indexed document."
-                ),
+                "answer": RetrievalGuardrail.refusal(),
                 "sources": [],
+                "retrieval_attempts": retrieval_attempts,
+                "error": "Guardrail blocked an ungrounded document response.",
             }
         context = self.build_context(results)
         response = self.model.invoke(
@@ -64,9 +75,12 @@ class RagService:
         answer = (response.content
             if isinstance(response.content, str)
             else str(response.content))
+        answer = RetrievalGuardrail.validate_answer(answer, len(results))
 
         return {
             "answer": answer,
+            "retrieval_attempts": retrieval_attempts,
+            "error": None,
             "sources": [
                 {
                     "chunk_id": item.get("chunk_id"),

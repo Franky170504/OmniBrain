@@ -3,6 +3,7 @@ from typing import Any, Literal, TypedDict
 
 AgentRoute = Literal[
     "document_agent",
+    "sql_agent",
     "general_agent",
     "clarify_agent",
 ]
@@ -15,4 +16,5 @@ class AgentState(TypedDict, total=False):
     route_reason: str
     answer: str
     sources: list[dict[str, Any]]
+    retrieval_attempts: int
     error: str | None
