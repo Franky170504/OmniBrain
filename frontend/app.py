@@ -5,7 +5,7 @@ from typing import Any
 
 import streamlit as st
 
-from frontend.api_client import OmniBrainAPIClient
+from api_client import OmniBrainAPIClient
 
 
 DEFAULT_BACKEND_URL = os.getenv("OMNIBRAIN_API_URL", "http://127.0.0.1:8000")
@@ -229,22 +229,61 @@ st.markdown(
         font-size: .9rem;
     }
 
+    /* ---------- INDEX SUMMARY METRICS ---------- */
+
+    .summary-metric {
+        padding: .15rem .2rem;
+    }
+
+    .summary-metric-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(64, 138, 113, .18);
+        border: 1px solid rgba(176, 228, 204, .18);
+        color: #B0E4CC;
+        font-size: 1.05rem;
+        margin-bottom: .7rem;
+    }
+
+    .summary-metric-title {
+        color: #9DB3AA;
+        font-size: .78rem;
+        font-weight: 600;
+        margin-bottom: .15rem;
+    }
+
+    .summary-metric-value {
+        color: #F4FBF8;
+        font-size: 1.9rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .summary-metric-caption {
+        color: #8FA69D;
+        font-size: .72rem;
+        margin-top: .3rem;
+    }
     /* ---------- METRICS ---------- */
 
-    [data-testid="stMetric"] {
-        background:
-            linear-gradient(
-                145deg,
-                rgba(40, 90, 72, .36),
-                rgba(9, 20, 19, .50)
-            );
+    # [data-testid="stMetric"] {
+    #     background:
+    #         linear-gradient(
+    #             145deg,
+    #             rgba(40, 90, 72, .36),
+    #             rgba(9, 20, 19, .50)
+    #         );
 
-        border: 1px solid var(--ob-border);
-        border-radius: 16px;
-        padding: 1rem;
-        box-shadow:
-            0 12px 30px rgba(0,0,0,.20);
-    }
+    #     border: 1px solid var(--ob-border);
+    #     border-radius: 16px;
+    #     padding: 1rem;
+    #     box-shadow:
+    #         0 12px 30px rgba(0,0,0,.20);
+    # }
 
     [data-testid="stMetricLabel"] {
         color: #9db3aa !important;
@@ -1000,17 +1039,42 @@ with upload_tab:
         st.divider()
         st.subheader("Index summary")
 
-        metrics = st.columns(2)
+        with st.container(border=True):
 
-        for column, label, key in zip(
-            metrics,
-            ["Pages", "Images"],
-            ["page_count", "image_count"],
-        ):
-            with column:
-                st.metric(
-                    label,
-                    result.get(key, 0),
+            metrics = st.columns(2)
+
+            with metrics[0]:
+                st.markdown(
+                    f"""
+                    <div class="summary-metric">
+                        <div class="summary-metric-icon">▤</div>
+                        <div class="summary-metric-title">Pages</div>
+                        <div class="summary-metric-value">
+                            {result.get("page_count", 0)}
+                        </div>
+                        <div class="summary-metric-caption">
+                            Total pages
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            with metrics[1]:
+                st.markdown(
+                    f"""
+                    <div class="summary-metric">
+                        <div class="summary-metric-icon">▧</div>
+                        <div class="summary-metric-title">Images</div>
+                        <div class="summary-metric-value">
+                            {result.get("image_count", 0)}
+                        </div>
+                        <div class="summary-metric-caption">
+                            Images extracted
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
                 )
 
 with chat_tab:
