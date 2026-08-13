@@ -15,3 +15,5 @@ langchain_community
 langgraph
 setuptools
 pypdf
+argon2-cffi
+minio

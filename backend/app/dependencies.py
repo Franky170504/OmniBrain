@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from fastapi import HTTPException, Request, status
+import uuid
+
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.services.qdrant_service import QdrantService
 from app.services.document_service import DocumentService
 from app.services.rag_service import RagService
 from app.agents.graph import OmniBrainGraph
 from app.services.chat_service import ChatService
+from app.services.auth_service import AuthService
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 def _get_app_state_service(request: Request, attribute_name: str):
     service = getattr(request.app.state, attribute_name,None)
@@ -25,6 +31,30 @@ def get_qdrant_service(request: Request) -> QdrantService:
 
 def get_document_service(request: Request) -> DocumentService:
     return _get_app_state_service(request,"document_service")
+
+def get_auth_service(request: Request) -> AuthService:
+    return _get_app_state_service(request, "auth_service")
+
+def get_authenticated_user_id(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> str:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication is required for document operations.",
+        )
+
+    try:
+        principal = auth_service.authenticate(credentials.credentials)
+        request.state.authenticated_user_id = principal
+        return principal
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated principal is invalid.",
+        ) from exc
 
 def get_rag_service(request: Request) -> RagService:
     return _get_app_state_service(request,"rag_service")

@@ -294,12 +294,7 @@ tgname,
 tgrelid::regclass
 FROM pg_trigger
 WHERE NOT tgisinternal
-AND tgfoid =
-(
-SELECT oid
-FROM pg_proc
-WHERE proname = 'set_updated_at'
-)
+AND tgfoid = 'common.set_updated_at()'::regprocedure
 ORDER BY tgrelid;
 
 -- ============================================================================

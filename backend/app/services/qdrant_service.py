@@ -8,8 +8,7 @@ from pathlib import Path
 
 from qdrant_client import QdrantClient, models
 
-from config.settings import settings
-from config.path_config import *
+from app.core.app_config import settings
 
 LOGGER = logging.getLogger("omnibrain.qdrant")
 
@@ -275,6 +274,54 @@ class QdrantService:
         if not self.get_client().collection_exists(self.collection_name):
             return 0
         return self.get_client().count(collection_name=self.collection_name,exact=True).count
+
+    def get_document_vector_count(self, *, user_id: str, document_id: str) -> int:
+        self.ensure_collection()
+        client = self.get_client()
+        count_filter = models.Filter(
+            must=[
+                models.FieldCondition(key="user_id", match=models.MatchValue(value=user_id)),
+                models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id)),
+            ]
+        )
+        response = client.count(
+            collection_name=self.collection_name,
+            count_filter=count_filter,
+            exact=True,
+        )
+        return int(response.count)
+
+    def verify_document_index(self, *, user_id: str, document_id: str, expected_count: int) -> bool:
+        if expected_count <= 0:
+            return False
+
+        vector_count = self.get_document_vector_count(user_id=user_id, document_id=document_id)
+        if vector_count != expected_count:
+            return False
+
+        response = self.get_client().query_points(
+            collection_name=self.collection_name,
+            query=models.Document(text="", model=self.embedding_model),
+            query_filter=models.Filter(
+                must=[
+                    models.FieldCondition(key="user_id", match=models.MatchValue(value=user_id)),
+                    models.FieldCondition(key="document_id", match=models.MatchValue(value=document_id)),
+                ]
+            ),
+            limit=expected_count + 1,
+            with_payload=True,
+            with_vectors=False,
+        )
+
+        if len(response.points) != expected_count:
+            return False
+
+        for point in response.points:
+            payload = point.payload or {}
+            if str(payload.get("document_id")) != str(document_id):
+                return False
+
+        return True
 
     def health(self) -> dict:
         try:
