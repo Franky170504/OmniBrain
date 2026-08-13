@@ -152,6 +152,8 @@ WHERE is_active = TRUE;
 -- TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_data_sources_bu_set_updated_at ON structured.data_sources;
+
 CREATE TRIGGER trg_data_sources_bu_set_updated_at
 BEFORE UPDATE
 ON structured.data_sources
@@ -397,6 +399,8 @@ ON structured.datasets(last_synced_at);
 -- UPDATED_AT TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_datasets_set_updated_at ON structured.datasets;
+
 CREATE TRIGGER trg_datasets_set_updated_at
 BEFORE UPDATE ON structured.datasets
 FOR EACH ROW
@@ -620,6 +624,8 @@ ON structured.dataset_tables(last_synced_at);
 -- ============================================================================
 -- TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_dataset_tables_set_updated_at ON structured.dataset_tables;
 
 CREATE TRIGGER trg_dataset_tables_set_updated_at
 BEFORE UPDATE
@@ -934,6 +940,8 @@ ON structured.dataset_columns(last_synced_at);
 -- TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_dataset_columns_set_updated_at ON structured.dataset_columns;
+
 CREATE TRIGGER trg_dataset_columns_set_updated_at
 BEFORE UPDATE
 ON structured.dataset_columns
@@ -1206,6 +1214,8 @@ ON structured.dataset_relationships(confidence_score);
 -- ============================================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_dataset_relationships_set_updated_at ON structured.dataset_relationships;
 
 CREATE TRIGGER trg_dataset_relationships_set_updated_at
 BEFORE UPDATE
@@ -1557,6 +1567,8 @@ ON structured.dataset_relationship_columns
 -- VALIDATION TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_relationship_columns_validate ON structured.dataset_relationship_columns;
+
 CREATE TRIGGER trg_relationship_columns_validate
 BEFORE INSERT OR UPDATE
 ON structured.dataset_relationship_columns
@@ -1566,6 +1578,8 @@ EXECUTE FUNCTION common.validate_relationship_column_mapping();
 -- ============================================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_relationship_columns_set_updated_at ON structured.dataset_relationship_columns;
 
 CREATE TRIGGER trg_relationship_columns_set_updated_at
 BEFORE UPDATE
@@ -1766,6 +1780,8 @@ ON structured.dataset_statistics
 -- ============================================================================
 -- TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_dataset_statistics_set_updated_at ON structured.dataset_statistics;
 
 CREATE TRIGGER trg_dataset_statistics_set_updated_at
 BEFORE UPDATE
@@ -2072,6 +2088,8 @@ ON structured.table_statistics
 -- ============================================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_table_statistics_set_updated_at ON structured.table_statistics;
 
 CREATE TRIGGER trg_table_statistics_set_updated_at
 BEFORE UPDATE
@@ -2398,6 +2416,8 @@ ON structured.column_statistics
 -- UPDATED_AT TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_column_statistics_set_updated_at ON structured.column_statistics;
+
 CREATE TRIGGER trg_column_statistics_set_updated_at
 BEFORE UPDATE
 ON structured.column_statistics
@@ -2628,6 +2648,8 @@ ON structured.tags
 -- UPDATED_AT TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_tags_set_updated_at ON structured.tags;
+
 CREATE TRIGGER trg_tags_set_updated_at
 BEFORE UPDATE
 ON structured.tags
@@ -2831,11 +2853,15 @@ ON structured.resource_tags
 -- TRIGGERS
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_resource_tags_validate_resource ON structured.resource_tags;
+
 CREATE TRIGGER trg_resource_tags_validate_resource
 BEFORE INSERT OR UPDATE
 ON structured.resource_tags
 FOR EACH ROW
 EXECUTE FUNCTION common.validate_resource_tag();
+
+DROP TRIGGER IF EXISTS trg_resource_tags_set_updated_at ON structured.resource_tags;
 
 CREATE TRIGGER trg_resource_tags_set_updated_at
 BEFORE UPDATE
@@ -3134,6 +3160,8 @@ ON structured.dataset_refresh_history
 -- ============================================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_dataset_refresh_history_set_updated_at ON structured.dataset_refresh_history;
 
 CREATE TRIGGER trg_dataset_refresh_history_set_updated_at
 BEFORE UPDATE

@@ -81,6 +81,21 @@ class ChatResponse(BaseModel):
 class ErrorResponse(BaseModel):
     detail: str
 
+class AuthCredentials(BaseModel):
+    email: str
+    password: str = Field(min_length=8, max_length=256)
+
+class AuthRegisterRequest(AuthCredentials):
+    full_name: str = Field(min_length=1, max_length=150)
+
+class AuthResponse(BaseModel):
+    user_id: str
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+
+class OwnerAssignmentRequest(BaseModel):
+    owner_user_id: str
+
 class QdrantHealthResponse(BaseModel):
     status: Literal[
         "healthy",

@@ -169,6 +169,8 @@ $$;
 DROP TRIGGER IF EXISTS trg_users_bu_set_updated_at
 ON auth.users;
 
+DROP TRIGGER IF EXISTS trg_users_bu_set_updated_at ON auth.users;
+
 CREATE TRIGGER trg_users_bu_set_updated_at
 BEFORE UPDATE
 ON auth.users

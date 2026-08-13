@@ -242,6 +242,8 @@ COMMENT ON COLUMN query_engine.feedback.updated_at IS
 -- UPDATED_AT TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_feedback_updated_at ON query_engine.feedback;
+
 CREATE TRIGGER trg_feedback_updated_at
 BEFORE UPDATE
 ON query_engine.feedback

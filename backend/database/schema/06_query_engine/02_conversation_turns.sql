@@ -239,6 +239,8 @@ COMMENT ON COLUMN query_engine.conversation_turns.updated_at IS
 -- UPDATED_AT TRIGGER
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS trg_conversation_turns_updated_at ON query_engine.conversation_turns;
+
 CREATE TRIGGER trg_conversation_turns_updated_at
 BEFORE UPDATE
 ON query_engine.conversation_turns

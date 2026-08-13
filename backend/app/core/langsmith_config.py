@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from config.settings import settings
+from app.core.app_config import settings
 
 def configure_langsmith() -> None:
     if not settings.langsmith_tracing:

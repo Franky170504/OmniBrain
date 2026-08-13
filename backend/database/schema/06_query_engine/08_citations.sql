@@ -176,15 +176,24 @@ WITH
 -- ADDITIONAL CONSTRAINTS
 -- ============================================================================
 
-ALTER TABLE query_engine.citations
-
-ADD CONSTRAINT chk_quoted_text_length
-CHECK
-(
-    quoted_text IS NULL
-    OR
-    length(quoted_text) <= 5000
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'chk_quoted_text_length'
+          AND conrelid = 'query_engine.citations'::regclass
+    ) THEN
+        ALTER TABLE query_engine.citations
+            ADD CONSTRAINT chk_quoted_text_length
+            CHECK
+            (
+                quoted_text IS NULL
+                OR
+                length(quoted_text) <= 5000
+            );
+    END IF;
+END $$;
 
 -- ============================================================================
 -- TABLE COMMENT
@@ -233,6 +242,8 @@ COMMENT ON COLUMN query_engine.citations.updated_at IS
 -- ============================================================================
 -- UPDATED_AT TRIGGER
 -- ============================================================================
+
+DROP TRIGGER IF EXISTS trg_citations_updated_at ON query_engine.citations;
 
 CREATE TRIGGER trg_citations_updated_at
 BEFORE UPDATE

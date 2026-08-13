@@ -1,0 +1,7 @@
+[server]
+headless = true
+showEmailPrompt = false
+runOnSave = false
+
+[browser]
+gatherUsageStats = false
