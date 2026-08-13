@@ -12,13 +12,7 @@ logger = logging.getLogger(__name__)
 class MinioService:
     """Storage service for MinIO operations."""
 
-    def __init__(
-        self,
-        endpoint: str,
-        access_key: str | None,
-        secret_key: str | None,
-        secure: bool = False,
-    ) -> None:
+    def __init__(self,endpoint: str,access_key: str | None,secret_key: str | None,secure: bool = False) -> None:
         self.endpoint = endpoint
         self.access_key = access_key
         self.secret_key = secret_key

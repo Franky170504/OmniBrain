@@ -244,7 +244,6 @@ pgdata/
 
 # macOS
 .DS_Store
-<<<<<<< HEAD
 =======
 
 
@@ -283,4 +282,3 @@ minio_data/
 
 # Temporary debug scripts
 backend/tmp_*.py
->>>>>>> upstream/feature/database

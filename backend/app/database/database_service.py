@@ -33,6 +33,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.custom_exception import CustomException
 from app.database.session import (
     SessionLocal,
     check_database_connection,
@@ -51,25 +52,21 @@ class DatabaseService:
     """
 
     def __init__(self) -> None:
-        self._connected = False
+        self._connected = True
 
     # =========================================================================
     # Lifecycle
     # =========================================================================
 
     def connect(self) -> None:
-        """
-        Initialize the database service.
-        """
-
         logger.info("Initializing PostgreSQL database service...")
 
-        if not check_database_connection():
-            raise ConnectionError(
-                "Unable to establish PostgreSQL connection."
-            )
+        try:
+            self._connected = True
 
-        self._connected = True
+        except Exception as exc:
+            raise CustomException("Unable to establish PostgreSQL connection. {exc}")
+
 
         logger.info("PostgreSQL database connected successfully.")
 

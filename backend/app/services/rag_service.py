@@ -5,12 +5,8 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 
-<<<<<<< HEAD
-from config.settings import settings
-from app.services.guardrail_service import RetrievalGuardrail
-=======
 from app.core.app_config import settings
->>>>>>> upstream/feature/database
+from app.services.guardrail_service import RetrievalGuardrail
 from app.services.qdrant_service import QdrantService
 
 class RagService:
@@ -39,7 +35,6 @@ class RagService:
         return "\n\n".join(sections)
 
     def answer(self, *, question: str, user_id: str, document_id: str | None = None) -> dict[str, Any]:
-<<<<<<< HEAD
         results = self.qdrant_service.search(question, user_id=user_id, document_id=document_id)
         retrieval_attempts = 1
 
@@ -53,29 +48,6 @@ class RagService:
             retrieval_attempts = 2
 
         if not RetrievalGuardrail.is_relevant(results):
-=======
-        results = self.qdrant_service.search(
-            question,
-            user_id=user_id,
-            document_id=document_id,
-            limit=settings.qdrant_top_k,
-            score_threshold=settings.qdrant_score_threshold,
-        )
-
-        # Controlled fallback:
-        # If no high-confidence result meets the primary threshold,
-        # retry with the lower fallback threshold.
-        if not results:
-            results = self.qdrant_service.search(
-                question,
-                user_id=user_id,
-                document_id=document_id,
-                limit=settings.qdrant_top_k,
-                score_threshold=settings.qdrant_fallback_threshold,
-            )
-
-        if not results:
->>>>>>> upstream/feature/database
             return {
                 "answer": RetrievalGuardrail.refusal(),
                 "sources": [],
@@ -104,13 +76,8 @@ class RagService:
         answer = (
             response.content
             if isinstance(response.content, str)
-<<<<<<< HEAD
             else str(response.content))
         answer = RetrievalGuardrail.validate_answer(answer, len(results))
-=======
-            else str(response.content)
-        )
->>>>>>> upstream/feature/database
 
         return {
             "answer": answer,
