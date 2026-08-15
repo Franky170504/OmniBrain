@@ -1070,8 +1070,8 @@ with upload_tab:
         st.caption("PDFs are parsed, chunked, and indexed for retrieval.")
 
         uploaded_file = st.file_uploader(
-            "Drag & drop a PDF here or click to browse",
-            type=["pdf"],
+            "Drag & drop a file here or click to browse",
+            type=None,
             accept_multiple_files=False,
             label_visibility="visible",
         )

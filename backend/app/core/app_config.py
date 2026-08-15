@@ -118,7 +118,7 @@ class AppSettings(BaseSettings):
         description="Validate pooled connections."
     )
     DATABASE_AUTO_INIT: bool = Field(
-        default=False,
+        default=True,
         description="Automatically apply SQL schema files on startup when enabled."
     )
 

@@ -50,9 +50,6 @@ class DocumentService:
         if not clean_name:
             raise ValueError("The uploaded file has no filename.")
 
-        if Path(clean_name).suffix.lower() != ".pdf":
-            raise ValueError("Only PDF files are supported.")
-        return clean_name
 
     async def save_upload(self, file: UploadFile) -> tuple[Path, str]:
         original_filename = self.validate_filename(file.filename)
@@ -107,7 +104,6 @@ class DocumentService:
             "checksum_sha256": parsed_document.get("sha256", ""),
             "mime_type": "application/pdf",
             "file_extension": self._normalize_file_extension(original_filename),
-            "document_type": "PDF",
             "language_code": metadata.get("language") or None,
             "document_description": metadata.get("subject") or None,
             "owner_user_id": self._resolve_user_id(user_id),
