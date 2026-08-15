@@ -768,7 +768,9 @@ st.markdown(
 
 def initialize_state() -> None:
     defaults: dict[str, Any] = {
-        "user_id": "local-user",
+        "user_id": None,
+        "access_token": None,
+        "authenticated": False,
         "document_id": None,
         "document_name": None,
         "upload_result": None,
@@ -811,7 +813,10 @@ def check_health(client):
         st.session_state.backend_online = False
         st.warning("Backend offline — start FastAPI first")
         
-client = OmniBrainAPIClient(base_url=st.session_state.backend_url)
+client = OmniBrainAPIClient(
+    base_url=st.session_state.backend_url,
+    access_token=st.session_state.access_token,
+)
 
 with st.sidebar:
 
@@ -841,6 +846,114 @@ with st.sidebar:
     st.divider()
 
     st.markdown(
+        "<div style='color:#35D6A0;font-weight:700;letter-spacing:.08em;'>ACCOUNT</div>",
+        unsafe_allow_html=True,
+    )
+
+    if not st.session_state.authenticated:
+
+        login_tab, register_tab = st.tabs(["Login", "Register"])
+
+        with login_tab:
+            login_email = st.text_input(
+                "Email",
+                key="login_email",
+            )
+
+            login_password = st.text_input(
+                "Password",
+                type="password",
+                key="login_password",
+            )
+
+            if st.button(
+                "Login",
+                type="primary",
+                use_container_width=True,
+            ):
+                try:
+                    auth_result = client.login(
+                        email=login_email.strip(),
+                        password=login_password,
+                    )
+
+                    st.session_state.access_token = auth_result["access_token"]
+                    st.session_state.user_id = auth_result["user_id"]
+                    st.session_state.authenticated = True
+
+                    st.success("Login successful.")
+                    st.rerun()
+
+                except Exception as exc:
+                    st.error(f"Login failed: {exc}")
+
+        with register_tab:
+            register_name = st.text_input(
+                "Full name",
+                key="register_name",
+            )
+
+            register_email = st.text_input(
+                "Email",
+                key="register_email",
+            )
+
+            register_password = st.text_input(
+                "Password",
+                type="password",
+                key="register_password",
+            )
+
+            if st.button(
+                "Create account",
+                type="primary",
+                use_container_width=True,
+            ):
+                try:
+                    auth_result = client.register(
+                        full_name=register_name.strip(),
+                        email=register_email.strip(),
+                        password=register_password,
+                    )
+
+                    st.session_state.access_token = auth_result["access_token"]
+                    st.session_state.user_id = auth_result["user_id"]
+                    st.session_state.authenticated = True
+
+                    st.success("Account created successfully.")
+                    st.rerun()
+
+                except Exception as exc:
+                    st.error(f"Registration failed: {exc}")
+
+    else:
+
+        st.success(
+            f"Signed in as {st.session_state.user_id}"
+        )
+
+        if st.button(
+            "Logout",
+            use_container_width=True,
+        ):
+            try:
+                client.logout()
+            except Exception:
+                pass
+
+            st.session_state.access_token = None
+            st.session_state.user_id = None
+            st.session_state.authenticated = False
+            st.session_state.document_id = None
+            st.session_state.document_name = None
+            st.session_state.upload_result = None
+            st.session_state.messages = []
+
+            st.rerun()
+
+    st.divider()
+
+    st.markdown(
         "<div style='color:#35D6A0;font-weight:700;letter-spacing:.08em;'>WORKSPACE SETTINGS</div>",
         unsafe_allow_html=True,
     )
@@ -850,15 +963,16 @@ with st.sidebar:
         value=st.session_state.backend_url,
     ).strip()
 
-    st.session_state.user_id = st.text_input(
-        "Researcher ID",
-        value=st.session_state.user_id,
-    ).strip() or "local-user"
+    # st.session_state.user_id = st.text_input(
+    #     "Researcher ID",
+    #     value=st.session_state.user_id,
+    # ).strip() or "local-user"
 
 
-    client = OmniBrainAPIClient(
-        base_url=st.session_state.backend_url
-    )
+    # client = OmniBrainAPIClient(
+    #     base_url=st.session_state.backend_url,
+    #     access_token=st.session_state.access_token,
+    # )
 
     if st.button(
         "Test connection",
@@ -974,7 +1088,6 @@ with upload_tab:
                         file_name=uploaded_file.name,
                         file_bytes=uploaded_file.getvalue(),
                         content_type=uploaded_file.type or "application/pdf",
-                        user_id=st.session_state.user_id,
                     )
 
                 st.session_state.upload_result = result
