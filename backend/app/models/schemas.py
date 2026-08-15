@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 AgentRoute = Literal[
     "document_agent",
+    "sql_agent",
     "general_agent",
     "clarify_agent",
 ]
@@ -75,6 +76,7 @@ class ChatResponse(BaseModel):
     route: AgentRoute | None = None
     route_reason: str | None = None
     error: str | None = None
+    retrieval_attempts: int = Field(default=0, ge=0)
 
 class ErrorResponse(BaseModel):
     detail: str

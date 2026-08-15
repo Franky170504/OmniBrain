@@ -30,5 +30,6 @@ class DocumentAgentNode:
         return {
             "answer": result["answer"],
             "sources": result.get("sources", []),
-            "error": None,
+            "retrieval_attempts": result.get("retrieval_attempts", 1),
+            "error": result.get("error"),
         }

@@ -33,7 +33,7 @@ router = APIRouter(prefix="/chat", tags=["Document Chat"])
     summary="Chat With Document",
     description=(
         "Routes the question through the LangGraph supervisor. "
-        "The supervisor selects the document, general, or clarification "
+        "The supervisor selects the document, SQL, general, or clarification "
         "agent."
     ),
 )
@@ -99,6 +99,7 @@ def chat_with_document(
             route=result.get("route"),
             route_reason=result.get("route_reason"),
             error=result.get("error"),
+            retrieval_attempts=result.get("retrieval_attempts", 0),
         )
 
         LOGGER.info("Chat request completed route=%s source_count=%d", response.route, len(response.sources))

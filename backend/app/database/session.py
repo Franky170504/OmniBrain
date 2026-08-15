@@ -33,9 +33,7 @@ from app.core.app_config import app_settings
 
 engine: Engine = create_engine(
     app_settings.SQLALCHEMY_DATABASE_URI,
-
     echo=app_settings.SQL_ECHO,
-
     pool_size=app_settings.POOL_SIZE,
     max_overflow=app_settings.MAX_OVERFLOW,
     pool_timeout=app_settings.POOL_TIMEOUT,
@@ -120,3 +118,5 @@ def dispose_engine() -> None:
     """
 
     engine.dispose()
+
+print(app_settings.SQLALCHEMY_DATABASE_URI)

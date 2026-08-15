@@ -19,22 +19,17 @@ class AppSettings(BaseSettings):
     # Project Configuration
     # =========================================================================
 
-    PROJECT_NAME: str = "OmniBrain"
-    PROJECT_VERSION: str = "0.1"
-    FAST_API_URL: str = "http://localhost:8000"
+    PROJECT_NAME: str = os.getenv("PROJECT_NAME")
+    # PROJECT_VERSION: str = "0.1"
+    FAST_API_URL: str = os.getenv("FAST_API_URL")
 
     # =========================================================================
     # Qdrant Configuration
     # =========================================================================
 
-    QDRANT_URL: str = "http://localhost:6333"
-
+    QDRANT_URL: str = os.getenv("QDRANT_URL")
     QDRANT_API_KEY: str | None = None
-
-    QDRANT_COLLECTION: str = Field(
-         default="omnibrain",
-         env=("QDRANT_COLLECTION", "COLLECTION_NAME"),
-    )
+    QDRANT_COLLECTION: str = os.getenv("COLLECTION_NAME")
 
     QDRANT_SCORE_THRESHOLD: float = 0.50
     QDRANT_FALLBACK_THRESHOLD: float = 0.35
@@ -45,132 +40,100 @@ class AppSettings(BaseSettings):
     # Embedding Configuration
     # =========================================================================
 
-    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
-    EMBEDDING_BATCH_SIZE: int = 1
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL")
+    EMBEDDING_BATCH_SIZE: int = os.getenv("EMBEDDING_BATCH_SIZE")
 
     # =========================================================================
     # Groq Configuration
     # =========================================================================
 
-    GROQ_API_KEY: str | None = None
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
-    GROQ_SUPERVISOR_MODEL: str = "llama-3.3-70b-versatile"
-    GROQ_GENERAL_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL")
+    GROQ_SUPERVISOR_MODEL: str = os.getenv("GROQ_SUPERVISOR_MODEL")
+    GROQ_GENERAL_MODEL: str = os.getenv("GROQ_GENERAL_MODEL")
 
     # =========================================================================
     # LangSmith Configuration
     # =========================================================================
 
-    LANGSMITH_TRACKING: bool = False
-    LANGSMITH_API_KEY: str | None = None
-    LANGSMITH_PROJECT: str = "omnibrain"
-    LANGSMITH_ENDPOINT: str = "http://localhost"
-
+    LANGSMITH_TRACKING: str = os.getenv("LANGSMITH_TRACKING")
+    LANGSMITH_API_KEY: str = os.getenv("LANGSMITH_API_KEY")
+    LANGSMITH_PROJECT: str = os.getenv("LANGSMITH_PROJECT")
+    LANGSMITH_ENDPOINT: str = os.getenv("LANGSMITH_ENDPOINT")
+  
     # =========================================================================
     # Upload Configuration
     # =========================================================================
 
-    MAX_UPLOAD_SIZE_MB: int = 10
+    MAX_UPLOAD_SIZE_MB: int = os.getenv("MAX_UPLOAD_SIZE_MB")
 
     # =========================================================================
     # MinIO Configuration
     # =========================================================================
 
-    MINIO_ENDPOINT: str = "localhost:9000"
-    MINIO_ACCESS_KEY: str | None = None
-    MINIO_SECRET_KEY: str | None = None
-    MINIO_BUCKET: str = "omnibrain-docs"
-    MINIO_SECURE: bool = False
+    MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT")
+    MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY")
+    MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY")
+    MINIO_BUCKET: str = os.getenv("MINIO_BUCKET")
+    MINIO_SECURE: bool = os.getenv("MINIO_SECURE","false").lower()=="true"
+    print(MINIO_SECURE)
 
     # =========================================================================
     # PostgreSQL Configuration
     # =========================================================================
 
-    POSTGRES_HOST: str = Field(
-        default="localhost",
-        description="PostgreSQL server hostname."
-    )
+    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST")
+    POSTGRES_PORT: int = os.getenv("POSTGRES_PORT")
+    POSTGRES_DATABASE: str = os.getenv("POSTGRES_DATABASE")
+    POSTGRES_USERNAME: str = os.getenv("POSTGRES_USERNAME")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD")
 
-    POSTGRES_PORT: int = Field(
-        default=5432,
-        description="PostgreSQL server port."
-    )
-
-    POSTGRES_DATABASE: str = Field(
-        default="omnibrain",
-        description="Primary PostgreSQL database."
-    )
-
-    POSTGRES_USERNAME: str = Field(
-        default="postgres",
-        description="Database username."
-    )
-
-    POSTGRES_PASSWORD: str = Field(
-        default="postgres",
-        description="Database password."
-    )
 
     SQL_ECHO: bool = Field(
         default=False,
         description="Enable SQLAlchemy SQL logging."
     )
-
     POOL_SIZE: int = Field(
         default=10,
         ge=1,
         description="Persistent database connections."
     )
-
     MAX_OVERFLOW: int = Field(
         default=20,
         ge=0,
         description="Temporary overflow connections."
     )
-
     POOL_TIMEOUT: int = Field(
         default=30,
         ge=5,
         description="Connection timeout in seconds."
     )
-
     POOL_RECYCLE: int = Field(
         default=1800,
         ge=300,
         description="Recycle idle connections."
     )
-
     POOL_PRE_PING: bool = Field(
         default=True,
         description="Validate pooled connections."
     )
-
     DATABASE_AUTO_INIT: bool = Field(
         default=False,
         description="Automatically apply SQL schema files on startup when enabled."
     )
 
-    AUTH_JWT_SECRET: str | None = Field(default=None, repr=False)
+    AUTH_JWT_SECRET: str = os.getenv("AUTH_JWT_SECRET")
     AUTH_JWT_PREVIOUS_JWT_SECRETS: str | None = Field(default=None, repr=False)
     AUTH_TOKEN_TTL_SECONDS: int = Field(default=3600, ge=60, le=86400)
     AUTH_RATE_LIMIT_WINDOW_SECONDS: int = Field(default=60, ge=1)
     AUTH_RATE_LIMIT_MAX_REQUESTS: int = Field(default=5, ge=1)
     AUTH_RATE_LIMIT_KEY_SALT: str = Field(default="omnibrain-auth-rate-limit", repr=False)
 
+
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        """
-        SQLAlchemy PostgreSQL connection URI.
-        """
-
-        return (
-            f"postgresql+psycopg://"
-            f"{self.POSTGRES_USERNAME}:"
-            f"{self.POSTGRES_PASSWORD}@"
-            f"{self.POSTGRES_HOST}:"
-            f"{self.POSTGRES_PORT}/"
-            f"{self.POSTGRES_DATABASE}"
-        )
+        return (f"postgresql+psycopg://{self.POSTGRES_USERNAME}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:5432/{self.POSTGRES_DATABASE}")
+        #postgresql+psycopg://postgres:5792195319@127.0.0.1:5432/omnibrain
 
     # =========================================================================
     # CORS
@@ -456,3 +419,4 @@ OUTPUT_DIR = AppSettings.OUTPUT_DIR
 CHUNKS = AppSettings.CHUNKS
 DOCUMENTS = AppSettings.DOCUMENTS
 IMAGES = AppSettings.IMAGES
+

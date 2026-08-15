@@ -220,6 +220,7 @@ __marimo__/
 input/
 output/
 qdrant_storage/
+data/*.db
 .vscode/
 
 # ============================================================================
@@ -243,6 +244,7 @@ pgdata/
 
 # macOS
 .DS_Store
+=======
 
 
 
