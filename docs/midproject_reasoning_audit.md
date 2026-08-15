@@ -35,6 +35,17 @@ $env:PYTHONPATH = "backend"
 python -m unittest discover -s backend/tests -v
 ```
 
+To run only the self-correction proof:
+
+```powershell
+$env:PYTHONPATH = "backend"
+python -m unittest backend.tests.test_self_rag_guardrails -v
+```
+
+This check proves that low-scoring retrieval triggers a retry, the retry query is narrowed, uncited answers are blocked, and cited answers are accepted.
+
+![Self-RAG guardrail test output](screenshots/self-rag-guardrail-tests.png)
+
 ## Demo queries
 
 ```text
