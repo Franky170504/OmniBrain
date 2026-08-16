@@ -241,6 +241,16 @@ class QdrantService:
             with_payload=True,
             with_vectors=False,
         )
+
+        LOGGER.info(
+            "Qdrant search: question=%r user_id=%s document_id=%s results=%d scores=%s",
+            question,
+            user_id,
+            document_id,
+            len(response.points),
+            [round(float(point.score), 4) for point in response.points],
+      )
+
         results: list[dict[str, Any]] = []
         for point in response.points:
             payload = point.payload or {}

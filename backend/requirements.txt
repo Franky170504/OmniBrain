@@ -13,6 +13,8 @@ langgraph
 setuptools
 pypdf
 PyMuPDF>=1.24,<2
+pytesseract>=0.3.13
+Pillow>=10.0.0
 streamlit
 python-dotenv
 argon2-cffi>=23.1.0

@@ -2,7 +2,7 @@
 ===============================================================================
 Project      : OmniBrain - Enterprise Agentic Multi-Modal RAG Platform
 Schema       : auth
-File         : 02_auth_sessions.sql
+File         : 03_auth_sessions.sql
 Version      : 1.0
 Author       : OmniBrain Database Team
 

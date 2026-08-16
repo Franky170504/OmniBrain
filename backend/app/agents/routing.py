@@ -35,15 +35,22 @@ def is_sql_market_question(question: str) -> bool:
     return has_market_term or (has_ticker and has_market_metric)
 
 
-def deterministic_route(question: str, document_id: str | None) -> AgentRoute | None:
-    """Resolve intents that have a safe, unambiguous route before the LLM."""
+def deterministic_route(
+    question: str,
+    document_id: str | None,
+) -> AgentRoute | None:
+    """Resolve intents that have a safe, unambiguous route."""
     if not question.strip():
         return "clarify_agent"
+
+    # Structured market-data questions take priority.
     if is_sql_market_question(question):
         return "sql_agent"
-    if document_id and any(
-        term in question.lower()
-        for term in ("document", "report", "pdf", "table", "chapter", "summary")
-    ):
+
+    # If the user has selected a document, treat it as the
+    # active context unless the question is explicitly a
+    # structured market-data request.
+    if document_id:
         return "document_agent"
+
     return None
