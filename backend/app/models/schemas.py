@@ -73,34 +73,31 @@ class UploadResponse(BaseModel):
     filename: str
 
     page_count: int = Field(
+        default=0,
         ge=0,
-        description=(
-            "Number of pages parsed from the PDF."
-        ),
     )
 
     chunk_count: int = Field(
+        default=0,
         ge=0,
-        description=(
-            "Number of text chunks created."
-        ),
     )
 
     image_count: int = Field(
+        default=0,
         ge=0,
-        description=(
-            "Number of images extracted."
-        ),
+    )
+
+    table_count: int = Field(
+        default=0,
+        ge=0,
     )
 
     indexed_points: int = Field(
+        default=0,
         ge=0,
-        description=(
-            "Number of vector points written "
-            "to Qdrant."
-        ),
     )
 
+    document_type: str | None = None
 
 # ============================================================
 # Chat Request

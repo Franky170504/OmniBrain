@@ -524,7 +524,7 @@ CREATE TABLE IF NOT EXISTS knowledge.pages (
     page_number INTEGER
         NOT NULL,
 
-    page_label VARCHAR(50),
+    page_label VARCHAR(225),
 
     page_type VARCHAR(20)
         NOT NULL
@@ -1472,7 +1472,7 @@ CREATE TABLE IF NOT EXISTS knowledge.tables (
     object_path TEXT
         NOT NULL,
 
-    storage_format VARCHAR(20)
+    storage_format VARCHAR(225)
         NOT NULL,
 
     ---------------------------------------------------------------------------
