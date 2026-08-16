@@ -100,11 +100,17 @@ class QueryEngineService:
             query_repo.create(query)
 
             response = Response(
-                response_id=uuid.uuid4(),
-                query_id=query.query_id,
-                response_text=result.get("answer", ""),
-                metadata_json={"document_id": document_id, "sources": result.get("sources", [])},
-            )
+                 response_id=uuid.uuid4(),
+                 query_id=query.query_id,
+                 response_text=result.get("answer", ""),
+                 is_streamed=False,
+                 stream_completed=False,
+                 is_final=True,
+                 metadata_json={
+                      "document_id": document_id,
+                      "sources": result.get("sources", []),
+                 },
+                 )
             response_repo.create(response)
 
             sources = result.get("sources", []) or []

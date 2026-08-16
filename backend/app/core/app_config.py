@@ -57,7 +57,7 @@ class AppSettings(BaseSettings):
     # =========================================================================
 
     LANGSMITH_TRACKING: str = os.getenv("LANGSMITH_TRACKING")
-    LANGSMITH_API_KEY: str = os.getenv("LANGSMITH_API_KEY")
+    LANGSMITH_API_KEY: str | None = os.getenv("LANGSMITH_API_KEY")
     LANGSMITH_PROJECT: str = os.getenv("LANGSMITH_PROJECT")
     LANGSMITH_ENDPOINT: str = os.getenv("LANGSMITH_ENDPOINT")
   

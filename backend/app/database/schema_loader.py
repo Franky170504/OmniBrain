@@ -30,10 +30,10 @@ SCHEMA_EXECUTION_ORDER = [
     "00_extensions.sql",
     "01_schemas.sql",
     "02_auth.sql",
-    "02_auth_sessions.sql",
-        "04_common_functions.sql",
-        "05_structured.sql",
-    "03_knowledge.sql",
+    "03_auth_sessions.sql",
+    "05_common_functions.sql",
+    "06_structured.sql",
+    "04_knowledge.sql",
 ]
 
 
@@ -133,7 +133,7 @@ def get_schema_files() -> list[Path]:
         if filename in available_files:
             ordered_files.append(available_files.pop(filename))
 
-    query_engine_dir = SCHEMA_DIRECTORY / "06_query_engine"
+    query_engine_dir = SCHEMA_DIRECTORY / "07_query_engine"
     if query_engine_dir.exists() and query_engine_dir.is_dir():
         ordered_files.extend(
             sorted(
