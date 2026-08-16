@@ -61,6 +61,12 @@ SUPPORTED_EXTENSIONS = {
     ".tiff": "IMAGE",
 }
 
+from typing import Any, Iterable, Iterator
+import fitz  # PyMuPDF
+import pytesseract
+from PIL import Image
+
+from app.core.app_config import INPUT_DIR, OUTPUT_DIR
 
 # ============================================================
 # Normalized models
@@ -253,6 +259,89 @@ def filename_page_label(
             MAX_PAGE_LABEL_LENGTH
             - reserved
         )
+def extract_page_text(document: fitz.Document) -> list[PageText]:
+    """
+    Extract text from each PDF page.
+
+    Normal PDFs use PyMuPDF text extraction. If a page contains
+    no extractable text, render that page as an image and use
+    Tesseract OCR as a fallback.
+    """
+    pages: list[PageText] = []
+
+    for page_index, page in enumerate(document):
+        page_number = page_index + 1
+
+        # Fast path: extract embedded PDF text.
+        raw_text = page.get_text("text", sort=True)
+        normalized_text = normalize_text(raw_text)
+
+        if normalized_text.strip():
+            pages.append(
+                PageText(
+                    page_number=page_number,
+                    text=normalized_text,
+                )
+            )
+            continue
+
+        # OCR fallback for scanned/image-only pages.
+        LOGGER.info(
+            "No extractable text on page %s; running OCR.",
+            page_number,
+        )
+
+        try:
+            # Render page at 2x resolution for better OCR accuracy.
+            matrix = fitz.Matrix(2.0, 2.0)
+            pixmap = page.get_pixmap(
+                matrix=matrix,
+                alpha=False,
+            )
+
+            image = Image.frombytes(
+                "RGB",
+                [pixmap.width, pixmap.height],
+                pixmap.samples,
+            )
+
+            ocr_text = pytesseract.image_to_string(
+                image,
+                lang="eng",
+                config="--psm 3",
+            )
+
+            normalized_ocr_text = normalize_text(ocr_text)
+
+            LOGGER.info(
+                "OCR completed for page %s: %d characters.",
+                page_number,
+                len(normalized_ocr_text),
+            )
+
+            pages.append(
+                PageText(
+                    page_number=page_number,
+                    text=normalized_ocr_text,
+                )
+            )
+
+        except Exception as exc:
+            LOGGER.exception(
+                "OCR failed for page %s: %s",
+                page_number,
+                exc,
+            )
+
+            # Preserve the page in the pipeline even if OCR fails.
+            pages.append(
+                PageText(
+                    page_number=page_number,
+                    text="",
+                )
+            )
+
+    return pages
 
         if available <= 0:
             return clean_name[

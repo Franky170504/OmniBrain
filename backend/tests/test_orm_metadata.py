@@ -14,7 +14,9 @@ import app.database.models  # noqa: F401
 class TestOrmMetadata(unittest.TestCase):
     def test_expected_orm_tables_are_registered(self):
         expected_tables = sorted([
+            'auth.auth_rate_limit_events',
             'auth.roles',
+            'auth.token_sessions',
             'auth.users',
             'knowledge.chunks',
             'knowledge.collections',

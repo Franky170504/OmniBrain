@@ -49,7 +49,7 @@ class Response(Base, TimestampMixin):
     response_format: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'MARKDOWN'"))
     finish_reason: Mapped[str] = mapped_column(String(30), nullable=False, server_default=text("'STOP'"))
     is_streamed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('FALSE'))
-    stream_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('TRUE'))
+    stream_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('FALSE'))
     is_final: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('TRUE'))
     response_language: Mapped[str] = mapped_column(CHAR(2), nullable=False, server_default=text("'en'"))
     response_hash: Mapped[str | None] = mapped_column(CHAR(64), nullable=True)

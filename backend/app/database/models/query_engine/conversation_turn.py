@@ -19,7 +19,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
-
+from sqlalchemy.dialects.postgresql import ENUM
 from app.database.base import Base
 from app.database.mixins import TimestampMixin
 
@@ -47,7 +47,19 @@ class ConversationTurn(Base, TimestampMixin):
     )
 
     turn_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    sender_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    sender_type: Mapped[str] = mapped_column(
+        ENUM(
+             "USER",
+             "ASSISTANT",
+             "SYSTEM",
+             "TOOL",
+             "AGENT",
+             name="sender_type_enum",
+             schema="query_engine",
+             create_type=False,
+    ),
+        nullable=False,
+)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     model_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     prompt_tokens: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
