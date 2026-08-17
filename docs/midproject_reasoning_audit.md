@@ -46,6 +46,10 @@ This check proves that low-scoring retrieval triggers a retry, the retry query i
 
 ![Self-RAG guardrail test output](screenshots/self-rag-guardrail-tests.png)
 
+## Presentation
+
+Download the project-review deck: [OmniBrain Agentic RAG Project Presentation](presentations/OmniBrain_Agentic_RAG_Project_Presentation.pptx).
+
 ## Demo queries
 
 ```text
