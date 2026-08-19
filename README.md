@@ -28,6 +28,8 @@ An agentic, multi-modal RAG workspace for uploading PDFs and asking grounded que
 
 The Streamlit app is normally available at `http://127.0.0.1:8501`. The FastAPI documentation is at `http://127.0.0.1:8000/docs`.
 
+For the current Windows/Docker setup, see the complete [website run guide](docs/run_website.md).
+
 ## Screenshots
 
 The Streamlit research workspace is running locally and ready for PDF upload and agentic Q&A.

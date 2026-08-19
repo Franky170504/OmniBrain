@@ -50,6 +50,8 @@ This check proves that low-scoring retrieval triggers a retry, the retry query i
 
 Download the project-review deck: [OmniBrain Agentic RAG Project Presentation](presentations/OmniBrain_Agentic_RAG_Project_Presentation.pptx).
 
+Download the written project report: [Axlero OmniBrain Project Report](reports/Axlero_OmniBrain_Project_Report.pdf).
+
 ## Demo queries
 
 ```text
