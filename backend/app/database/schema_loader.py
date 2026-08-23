@@ -31,9 +31,9 @@ SCHEMA_EXECUTION_ORDER = [
     "01_schemas.sql",
     "02_auth.sql",
     "03_auth_sessions.sql",
-    "05_common_functions.sql",
+    "04_common_functions.sql",
+    "05_knowledge.sql",
     "06_structured.sql",
-    "04_knowledge.sql",
 ]
 
 

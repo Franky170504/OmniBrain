@@ -259,6 +259,24 @@ def filename_page_label(
             MAX_PAGE_LABEL_LENGTH
             - reserved
         )
+        if available <= 0:
+            return clean_name[
+                :MAX_PAGE_LABEL_LENGTH
+            ]
+
+        return (
+            stem[:available]
+            + "..."
+            + suffix
+        )
+
+    return (
+        clean_name[
+            :MAX_PAGE_LABEL_LENGTH - 3
+        ]
+        + "..."
+    )
+
 def extract_page_text(document: fitz.Document) -> list[PageText]:
     """
     Extract text from each PDF page.
@@ -343,23 +361,6 @@ def extract_page_text(document: fitz.Document) -> list[PageText]:
 
     return pages
 
-        if available <= 0:
-            return clean_name[
-                :MAX_PAGE_LABEL_LENGTH
-            ]
-
-        return (
-            stem[:available]
-            + "..."
-            + suffix
-        )
-
-    return (
-        clean_name[
-            :MAX_PAGE_LABEL_LENGTH - 3
-        ]
-        + "..."
-    )
 
 
 # ============================================================
